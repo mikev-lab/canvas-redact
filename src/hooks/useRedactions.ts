@@ -36,8 +36,8 @@ export interface UseRedactionsReturn {
   setInPoint: (id: string, startMs: number) => void;
   /** Adjust out-point (end timestamp) with automatic inversion correction */
   setOutPoint: (id: string, endMs: number) => void;
-  /** Record or update a keyframe snapshot for a redaction at a specific timestamp */
-  setKeyframe: (id: string, timeMs: number, bbox: NormalizedBBoxTuple) => void;
+  /** Record or update a keyframe snapshot for a redaction at a specific timestamp with optional minimum end boundary */
+  setKeyframe: (id: string, timeMs: number, bbox: NormalizedBBoxTuple, minEndMs?: number) => void;
   /** Remove a keyframe near a specific timestamp */
   removeKeyframe: (id: string, timeMs: number) => void;
   /** Clear all keyframes from a redaction box */
@@ -221,7 +221,7 @@ export function useRedactions(
     );
   }, []);
 
-  const setKeyframe = useCallback((id: string, timeMs: number, bbox: NormalizedBBoxTuple) => {
+  const setKeyframe = useCallback((id: string, timeMs: number, bbox: NormalizedBBoxTuple, minEndMs?: number) => {
     setRedactions(prev =>
       prev.map(r => {
         if (r.id !== id) return r;
@@ -233,8 +233,9 @@ export function useRedactions(
         const updatedKeyframes = upsertKeyframe(existingKeyframes, timeMs, bbox);
 
         // Automatically expand the temporal validity window [startMs, endMs] to encompass the new keyframe
+        // and optionally extend to the projected next jump so tracking does not cut off abruptly
         const nextStartMs = Math.min(r.startMs, timeMs);
-        const nextEndMs = Math.max(r.endMs, timeMs);
+        const nextEndMs = Math.max(r.endMs, timeMs, minEndMs ?? timeMs);
 
         return {
           ...r,

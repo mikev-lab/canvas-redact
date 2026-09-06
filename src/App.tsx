@@ -148,19 +148,23 @@ export default function App(): React.ReactElement {
             const currentBbox = redactionsState.selectedRedaction.bbox;
             const targetId = redactionsState.selectedRedaction.id;
 
-            // Commit keyframe at current position
+            const deltaFrames = e.shiftKey ? -jumpFrames : jumpFrames;
+            const nextMs = stepFrameTime(currentMs, deltaFrames, playback.durationMs, playback.fps);
+            const jumpDurationMs = Math.max(33, Math.round((jumpFrames * 1000) / (playback.fps || 30)));
+
+            // Forward-project endMs to the next jump so the redaction never stops abruptly
+            const projectedEndMs = !e.shiftKey
+              ? Math.min(playback.durationMs, Math.max(redactionsState.selectedRedaction.endMs, nextMs + jumpDurationMs))
+              : redactionsState.selectedRedaction.endMs;
+
             redactionsState.setKeyframe(
               targetId,
               currentMs,
-              currentBbox
+              currentBbox,
+              projectedEndMs
             );
 
-            // Pre-extend box bounds to next stepped frame so box remains active and visible
-            const deltaFrames = e.shiftKey ? -jumpFrames : jumpFrames;
-            const nextMs = stepFrameTime(currentMs, deltaFrames, playback.durationMs, playback.fps);
-            if (nextMs > redactionsState.selectedRedaction.endMs) {
-              redactionsState.setOutPoint(targetId, nextMs);
-            } else if (nextMs < redactionsState.selectedRedaction.startMs) {
+            if (nextMs < redactionsState.selectedRedaction.startMs) {
               redactionsState.setInPoint(targetId, nextMs);
             }
 
@@ -175,10 +179,18 @@ export default function App(): React.ReactElement {
         case 'Enter': // Enter / M: Mark keyframe at current position
           if (redactionsState.selectedRedaction) {
             e.preventDefault();
+            const currentMs = playback.currentTimeMs;
+            const targetId = redactionsState.selectedRedaction.id;
+            const jumpDurationMs = Math.max(33, Math.round((jumpFrames * 1000) / (playback.fps || 30)));
+            const projectedEndMs = isTrackingMode
+              ? Math.min(playback.durationMs, Math.max(redactionsState.selectedRedaction.endMs, currentMs + jumpDurationMs))
+              : undefined;
+
             redactionsState.setKeyframe(
-              redactionsState.selectedRedaction.id,
-              playback.currentTimeMs,
-              redactionsState.selectedRedaction.bbox
+              targetId,
+              currentMs,
+              redactionsState.selectedRedaction.bbox,
+              projectedEndMs
             );
             setNotification({
               message: `Marked keyframe at ${msToTimecode(playback.currentTimeMs, playback.fps).formatted}`,

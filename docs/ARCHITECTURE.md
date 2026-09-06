@@ -333,6 +333,37 @@ To minimize operator fatigue during evidence redaction:
   - When Tracking Mode is disabled (or no box is selected): `Space` acts as standard forensic Play/Pause toggle.
 * **Direct Keyframe Hotkeys:** `Enter` or `M` to record in place, `Alt + Left/Right Arrow` to navigate between keyframes, and `Shift + Left/Right Arrow` to step by custom jump intervals.
 
+### 10.5 Forward-Projected Jump Extension in Tracking Mode
+
+In manual rotoscoping workflows, an operator tracks moving subjects across video frames by marking keyframe coordinates. In conventional video editors with fixed temporal bounds, a bounding box is constrained to a static $[startMs, endMs]$ duration. When an operator advances past $endMs$, the bounding box abruptly terminates, disappearing from the canvas. This interrupts the operator's rotoscoping rhythm, forcing them to pause and manually adjust timeline brackets (via the `]` key or timeline drag handles).
+
+To maintain continuous operator flow without manual boundary adjustments, **canvas-redact** implements an automatic **Forward-Projected Jump Extension** mechanism within `useRedactions` and `App.tsx`:
+
+#### Mathematical Jump Extension Formulation
+When Tracking Mode is active and the operator records a keyframe via `Space` (keyframe and step forward), the target jump duration is computed based on the active media framerate and configured frame jump count:
+
+$$\Delta t_{\text{jump}} = \max\left(33, \text{round}\left(\frac{\text{jumpFrames} \times 1000}{\text{fps}}\right)\right)$$
+
+The timestamp of the upcoming landing frame is:
+
+$$t_{\text{next}} = \min(\text{durationMs}, t_{\text{current}} + \Delta t_{\text{jump}})$$
+
+To guarantee that the bounding box does not terminate upon arrival at $t_{\text{next}}$, the system forward-projects the redaction validity ceiling to encompass the landing frame plus the subsequent jump step:
+
+$$t_{\text{projectedEnd}} = \min(\text{durationMs}, \max(\text{endMs}, t_{\text{next}} + \Delta t_{\text{jump}}))$$
+
+#### Monotonic Boundary Enforcement (`minEndMs`)
+The `useRedactions.setKeyframe` action accepts an optional `minEndMs` parameter. When updating the target annotation record, the hook enforces monotonic expansion of the temporal boundaries:
+
+$$\text{nextStartMs} = \min(\text{startMs}, t_{\text{current}})$$
+
+$$\text{nextEndMs} = \max(\text{endMs}, t_{\text{current}}, \text{minEndMs} \text{ if provided})$$
+
+#### Keyframing Modes
+1. **Step-and-Track (`Space`):** Projects the boundary forward to $t_{\text{next}} + \Delta t_{\text{jump}}$ and advances the playhead by `jumpFrames`. When the playhead arrives at $t_{\text{next}}$, the box is guaranteed to remain active and visible. The operator can immediately drag or resize the box and press `Space` again.
+2. **In-Place Keyframe (`Enter` or `M`):** When Tracking Mode is enabled, records a keyframe at the current position and forward-projects $endMs$ to at least $t_{\text{current}} + \Delta t_{\text{jump}}$, ensuring coverage extends into the immediate future even without stepping.
+3. **Anchor Preservation:** When keyframing on a box with no prior keyframes at $t > startMs$, the initial geometry at $startMs$ is preserved as an anchor, preventing trajectory drift from the origin point.
+
 ---
 
 ## 11. Decoder-Gated Reverse Playback & Personnel Chain of Custody Attribution
@@ -360,4 +391,89 @@ Court evidence standards mandate clear provenance of who applied privacy censors
 * **Automatic Attribution:** Every newly created redaction automatically inherits the active `reviewerId`.
 * **Segment Editing:** Operators can review and adjust the reviewer ID for individual redaction segments in the inspector.
 * **Manifest Persistence:** Exported and imported JSON manifests serialize `metadata.reviewerId` and per-box `reviewerId` attributes with defense-in-depth sanitization against XSS and control characters.
+
+---
+
+## 12. Development Thought Process & Architectural Rationale
+
+This section documents the foundational engineering trade-offs, design decisions, and architectural rationales established during the development of **canvas-redact**.
+
+### 12.1 100% Client-Side Air-Gapped Architecture vs. Cloud Processing
+* **The Problem:** Video evidence often contains sensitive personal identifiable information (PII), juvenile victims, undercover officers, or proprietary facility recordings. Transmitting multi-gigabyte bodycam or CCTV files to cloud backends introduces substantial legal risks, data security vulnerabilities, CJIS (Criminal Justice Information Services) compliance overhead, and multi-minute upload delays.
+* **Options Considered:**
+  1. *Server-Side Processing (e.g. Node/Python/FFmpeg API):* Centralized transcoding and filter baking, but introduces severe data egress liability, high cloud hosting costs, and network latency bottlenecks.
+  2. *Hybrid Cloud Processing:* Metadata in cloud, video streaming via pre-signed URLs. Still violates air-gapped evidence requirements for sensitive public safety agencies.
+  3. *100% Client-Side Browser Engine:* Zero data leaves the local workstation. Video files are parsed in-memory via `URL.createObjectURL(file)`, and censorship layers are rendered directly on the GPU using HTML5 Canvas.
+* **Decision & Rationale:** We selected the 100% Client-Side Air-Gapped Architecture. By avoiding network transport entirely, the application guarantees absolute privacy, zero cloud operational expenses, instant drag-and-drop ingestion, and compliance with court evidence chain-of-custody standards.
+
+### 12.2 Normalized Coordinates [0.0, 1.0] vs. Absolute Pixel Coordinates
+* **The Problem:** Bounding boxes must remain spatially aligned across diverse display environments, including window resizing, responsive layout shifts, sidebar collapsing, and browser fullscreen modes.
+* **Options Considered:**
+  1. *Screen Pixel Coordinates ($px$):* Measuring boxes relative to the rendered canvas DOM width and height ($800 \times 450$). Breaks immediately when the viewport resizes, requiring complex scaling transformations across the entire state tree.
+  2. *Intrinsic Video Pixel Coordinates:* Measuring boxes relative to the raw video resolution ($1920 \times 1080$). Requires waiting for video metadata before any box can be positioned, couples state to media dimensions, and complicates letterbox/pillarbox offset calculations.
+  3. *Normalized Fractional Coordinates $[0.0, 1.0]$:* Measuring coordinates as fractions of the intrinsic video dimensions, where $(0, 0)$ is top-left and $(1, 1)$ is bottom-right.
+* **Decision & Rationale:** We selected Normalized Coordinates $[0.0, 1.0]$. Normalized coordinates are completely invariant to CSS dimensions, DPI scaling, and viewport resizing. Furthermore, normalized formats are the universal standard for computer vision annotations (YOLO, COCO, Pascal VOC), allowing exported JSON manifests to integrate directly into machine learning pipelines without conversion.
+
+### 12.3 Native HTML5 Video & 2D Canvas vs. Heavy WebAssembly (FFmpeg WASM)
+* **The Problem:** Delivering frame-accurate video playback with high-performance redaction filters without introducing multi-megabyte bundle bloat or CPU rendering lag.
+* **Options Considered:**
+  1. *FFmpeg WebAssembly (ffmpeg.wasm):* Provides full video demuxing and software transcoding in the browser. However, the core WASM binary exceeds 25MB to 50MB, requires SharedArrayBuffer with complex Cross-Origin Isolation headers (`COOP`/`COEP`), incurs high memory overhead, and struggles to decode high-resolution 4K streams at 60 FPS on standard consumer hardware.
+  2. *Third-Party Video Player Libraries (Video.js, Plyr):* Add heavy DOM abstractions and event proxies that decouple the canvas render loop from hardware video ticks, causing frame desynchronization.
+  3. *Native HTML5 `<video>` paired with 2D HTML5 `<canvas>`:* Exploits the browser's native hardware-accelerated video decode engine, overlaying an interactive 2D canvas that renders GPU-accelerated CSS filters (`ctx.filter = 'blur(12px)'`) at 60 FPS.
+* **Decision & Rationale:** We selected the Native HTML5 `<video>` and 2D `<canvas>` pipeline. This keeps the production application bundle under 200KB gzipped, eliminates external binary dependencies, ensures instantaneous zero-wait startup, and delivers smooth 60 FPS playback on modern workstations.
+
+### 12.4 Event-Driven Decoder-Gated Reverse Seeking vs. Standard RAF Seek Loops
+* **The Problem:** Modern video compression formats (H.264, HEVC, AV1) use inter-frame temporal compression with keyframes (I-frames) and predictive frames (P/B-frames). While forward playback is hardware-optimized, HTML5 `<video>` elements do not support negative playback rates. Attempting to implement reverse playback by updating `video.currentTime` inside a standard 60 FPS `requestAnimationFrame` loop rapidly overwhelms the browser's hardware video decoder, leading to dropped frames, black screens, or completely frozen playback.
+* **Options Considered:**
+  1. *Fixed-Interval Timer Seeking:* Issuing `currentTime` decrements on a `setInterval(..., 33ms)`. Fails because decode latencies vary across frames, leading to queue buildup.
+  2. *Full Frame Pre-Extraction into Memory:* Pre-rendering video frames into an in-memory array of canvas bitmaps. Requires gigabytes of RAM for even a few minutes of 1080p video, causing browser tab crashes.
+  3. *Decoder-Gated Seeking Pipeline:* Gating backward seeks on decoder readiness (`!video.seeking && !isSeekingRef.current`) and listening directly to the browser's native `'seeked'` event to trigger both canvas redraws and the subsequent frame seek.
+* **Decision & Rationale:** We designed the Decoder-Gated Seeking Pipeline. By synchronizing seek dispatches to the hardware decoder's completion event rather than an arbitrary timer, reverse shuttle operates smoothly across -1x, -2x, and -4x speeds without freezing the UI or starving the video decode pipeline.
+
+### 12.5 Piecewise Linear Interpolation (`lerp`) vs. Spline Curves
+* **The Problem:** Tracking moving subjects (such as pedestrians or vehicles) across video frames requires coordinate progression between recorded keyframes.
+* **Options Considered:**
+  1. *Per-Frame Dense Storage:* Storing coordinate values for every single video frame (30 to 60 records per second). Results in bloated export manifests, excessive memory consumption, and extreme difficulty in manually editing or inspecting trajectories.
+  2. *Cubic or Catmull-Rom Spline Interpolation:* Generates smooth curved paths. However, splines suffer from overshoot and oscillation artifacts (Runge's phenomenon). A sudden change in subject velocity can cause the interpolated redaction box to swing outside the target's actual path, inadvertently exposing an unredacted face between keyframes (a critical privacy violation).
+  3. *Piecewise Linear Interpolation (`lerp`):* Linearly interpolating coordinates between adjacent keyframes in normalized space.
+* **Decision & Rationale:** We selected Piecewise Linear Interpolation (`lerp`). Linear interpolation is mathematically monotonic, strictly bounded within the convex hull of consecutive keyframes, computationally instantaneous ($O(1)$ per frame), and forensic-safe with zero overshoot risk.
+
+### 12.6 Rapid Rotoscope Tracking Workflow with Forward-Projected Bounds
+* **The Problem:** Redacting moving targets in long video clips is labor-intensive. In traditional non-linear editors, an operator must repeatedly select the box, advance the timeline, stretch the clip duration, position the box, and create a keyframe. This repetitive cycle causes severe operator fatigue and slows evidence turnaround times.
+* **Options Considered:**
+  1. *Multi-Step Tool Workflow:* Separate tools for drawing, seeking, stretching, and keyframing.
+  2. *Tracking Mode with Static Durations:* Hotkey-driven stepping, but with a fixed box duration ($endMs$). When the operator advances past the initial duration, the box vanishes, forcing manual timeline extensions.
+  3. *Tracking Mode with Forward-Projected Jump Extension:* An integrated rotoscoping mode where pressing `Space` records the current keyframe, steps forward by a customizable jump interval (e.g. 1, 5, 10, or 30 frames), and automatically forward-projects $endMs$ to cover the landing frame and upcoming jump.
+* **Decision & Rationale:** We selected the Tracking Mode with Forward-Projected Jump Extension. The operator can track an object smoothly across dozens of frames simply by holding their mouse over the target and rhythmically tapping `Space`, reducing redaction time from minutes to seconds without any manual timeline fiddling.
+
+### 12.7 Asynchronous Dynamic Code-Splitting for Computer Vision Subsystems
+* **The Problem:** While automated face detection and multi-object tracking accelerate bulk redactions, bundling heavy computer vision models into the main application bundle increases initial download size, degrades load performance, and penalizes users who only need manual redaction.
+* **Options Considered:**
+  1. *Monolithic Bundling:* Including all detection algorithms, tracking logic, and UI modals in the primary index bundle. Results in a large initial payload and slower First Contentful Paint (FCP).
+  2. *External CDN Scripts:* Loading models from external CDNs at runtime. Violates the air-gapped forensic privacy invariant.
+  3. *Asynchronous Dynamic Code-Splitting:* Isolating the auto-redaction modal (`AutoRedactModal.tsx`), face detectors, and Kalman tracking engine into on-demand asynchronous chunks via `React.lazy()` and dynamic `import()`.
+* **Decision & Rationale:** We implemented Asynchronous Dynamic Code-Splitting. The primary video scrubber bundle remains lightweight (sub-second FCP), while computer vision modules are loaded only when the operator explicitly clicks "Auto-Redact".
+
+### 12.8 Pure TypeScript Multi-Object Tracking (SORT + Kalman Filter)
+* **The Problem:** Associating detected faces across video frames into consistent subject trajectories requires multi-object tracking. Heavy machine learning tracking models (such as deep feature extractors) consume significant GPU memory and require large model weight downloads.
+* **Options Considered:**
+  1. *Deep Learning Appearance Re-ID (DeepSORT):* High accuracy, but requires loading heavy neural feature extraction models into memory, leading to thermal throttling on ultra-thin laptops.
+  2. *Pure TypeScript SORT (Simple Online and Realtime Tracking):* Combining a 2D spatial Kalman filter for constant-velocity trajectory prediction with spatial Intersection over Union (IoU) Hungarian association.
+* **Decision & Rationale:** We implemented a Pure TypeScript SORT Tracker. It executes in microseconds per frame with zero external dependencies, consumes negligible memory, runs smoothly on low-power devices (such as an Apple M4 MacBook Air), and provides stable track continuity across occlusions and motion blur.
+
+### 12.9 Integer Millisecond State Representation vs. Floating-Point Seconds
+* **The Problem:** The native HTML5 video element represents time in floating-point seconds (`video.currentTime = 14.283333`). In JavaScript, IEEE 754 floating-point arithmetic introduces cumulative precision drift when performing repetitive frame additions (e.g. $0.1 + 0.2 \ne 0.3$). Over a 60-minute bodycam recording, floating-point drift causes redaction boxes to trigger one frame early or late, compromising evidentiary accuracy.
+* **Options Considered:**
+  1. *Floating-Point Seconds:* Native to HTML5 `<video>`, but prone to rounding drift and comparison errors (`t >= start && t <= end`).
+  2. *Frame Index Integers:* Indexing purely by frame number (0 to $N$). Requires strict knowledge of the exact video framerate and fails when handling variable framerate (VFR) media.
+  3. *Integer Milliseconds ($ms$):* Normalizing all internal time representation to discrete integer milliseconds (`Math.round(sec * 1000)`).
+* **Decision & Rationale:** We selected Integer Milliseconds ($ms$). Integer arithmetic completely eliminates floating-point precision drift, guarantees deterministic interval comparisons ($startMs \le currentTimeMs \le endMs$), supports both standard and low-framerate media, and aligns with standard forensic video timecode contracts.
+
+### 12.10 Strict WCAG 2.1 Level AAA Forensic Accessibility Standard
+* **The Problem:** Evidence review and redaction applications are heavily utilized in public safety, judicial, and municipal government settings governed by federal accessibility standards (Section 508 and ADA Title II). Standard web applications typically target WCAG Level AA, which allows lower contrast ratios and permits mouse-only workflows.
+* **Options Considered:**
+  1. *Standard WCAG 2.1 Level AA:* Minimum 4.5:1 contrast ratio, basic keyboard focus. Insufficient for demanding low-light command centers or operators with severe vision impairments.
+  2. *Strict WCAG 2.1 Level AAA:* Minimum 7:1 enhanced contrast ratio for all standard text and labels, visible high-contrast focus rings, complete keyboard operability for 100% of workflows, ARIA live region announcements for state transitions, and multi-modal indicator coding.
+* **Decision & Rationale:** We engineered **canvas-redact** to strictly comply with WCAG 2.1 Level AAA. Using a curated obsidian slate color palette (`#09090b` background with high-contrast `#ffffff` and `#f4f4f5` text), operators enjoy reduced eye strain during multi-hour review sessions, and every action is fully accessible via keyboard shortcuts.
+
 

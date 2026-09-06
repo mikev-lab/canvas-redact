@@ -357,4 +357,27 @@ describe('useRedactions hook', () => {
     expect(box?.keyframes?.[1]?.timeMs).toBe(1000);
     expect(box?.keyframes?.[1]?.bbox).toEqual([0.3, 0.3, 0.2, 0.2]);
   });
+
+  it('forward-projects endMs when setKeyframe receives minEndMs for tracking jumps', () => {
+    const { result } = renderHook(() => useRedactions(0));
+
+    let id = '';
+    act(() => {
+      id = result.current.addRedaction({
+        label: 'Jump Target',
+        type: 'blur',
+        startMs: 0,
+        endMs: 500,
+        bbox: [0.1, 0.1, 0.2, 0.2]
+      });
+    });
+
+    // Record keyframe at t = 300 with projected next jump endMs = 800
+    act(() => {
+      result.current.setKeyframe(id, 300, [0.15, 0.15, 0.2, 0.2], 800);
+    });
+
+    const box = result.current.redactions.find(r => r.id === id);
+    expect(box?.endMs).toBe(800); // Extended forward to next jump!
+  });
 });
