@@ -20,6 +20,7 @@ import { PlaybackControls } from './components/PlaybackControls';
 import { Timeline } from './components/Timeline';
 import { AnnotationSidebar } from './components/AnnotationSidebar';
 import { ExportModal } from './components/ExportModal';
+import { ImportModal } from './components/ImportModal';
 import { ShortcutsModal } from './components/ShortcutsModal';
 
 // Lazily load AI Detection modal so zero heavy AI UI/model assets appear on initial load
@@ -30,6 +31,7 @@ const AutoRedactModal = React.lazy(() =>
 export default function App(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isTrackingMode, setIsTrackingMode] = useState(false);
   const [jumpFrames, setJumpFrames] = useState(5);
@@ -100,16 +102,16 @@ export default function App(): React.ReactElement {
   }, [playback, redactionsState]);
 
   // Handler for importing an evidence review JSON manifest
-  const handleImportJson = useCallback((rawJson: string): boolean => {
+  const handleImportJson = useCallback((rawJson: string, mode: 'replace' | 'merge' = 'replace'): boolean => {
     try {
       const payload = validateAndSanitizeImport(rawJson);
-      const success = redactionsState.importPayload(payload);
+      const success = redactionsState.importPayload(payload, mode);
       if (success) {
         if (payload.metadata.reviewerId) {
           setReviewerId(payload.metadata.reviewerId);
         }
         setNotification({
-          message: `Successfully imported ${payload.redactions.length} redactions from manifest.`,
+          message: `Successfully imported ${payload.redactions.length} redactions from manifest (${mode === 'merge' ? 'merged' : 'replaced'}).`,
           type: 'success'
         });
         setTimeout(() => setNotification(null), 4000);
@@ -336,6 +338,7 @@ export default function App(): React.ReactElement {
       <Header
         onFileUpload={handleFileUpload}
         onImportJson={handleImportJson}
+        onImportClick={() => setIsImportOpen(true)}
         onExportClick={() => setIsExportOpen(true)}
         onClearAll={redactionsState.clearAll}
         onToggleShortcuts={() => setIsShortcutsOpen(true)}
@@ -385,6 +388,7 @@ export default function App(): React.ReactElement {
               videoHeight={playback.videoHeight}
               isReady={playback.isReady}
               onFileUpload={handleFileUpload}
+              onImportJson={(raw) => handleImportJson(raw, 'replace')}
               activeRedactions={redactionsState.activeRedactions}
               selectedId={redactionsState.selectedId}
               currentDragRect={interaction.currentDragRect}
@@ -460,6 +464,15 @@ export default function App(): React.ReactElement {
         isOpen={isExportOpen}
         onClose={() => setIsExportOpen(false)}
         payload={exportPayload}
+        onSwitchToImport={() => setIsImportOpen(true)}
+      />
+
+      {/* Evidence Import JSON Modal */}
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImport={handleImportJson}
+        existingCount={redactionsState.redactions.length}
       />
 
       {/* Forensic Shortcuts Reference Modal */}

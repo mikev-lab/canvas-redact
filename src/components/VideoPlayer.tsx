@@ -14,8 +14,10 @@ export interface VideoPlayerProps extends Omit<CanvasOverlayProps, 'videoDimensi
   videoHeight: number;
   /** Whether video is loaded and ready for frame rendering */
   isReady: boolean;
-  /** Optional file upload callback for drag-and-drop or file selection */
+  /** Video file upload callback */
   onFileUpload?: (file: File) => void;
+  /** JSON evidence manifest import callback */
+  onImportJson?: (rawJson: string) => boolean;
 }
 
 /**
@@ -28,6 +30,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoHeight,
   isReady,
   onFileUpload,
+  onImportJson,
   ...canvasProps
 }) => {
   const dropInputRef = useRef<HTMLInputElement>(null);
@@ -55,14 +58,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     e.stopPropagation();
     setIsDraggingOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && onFileUpload) {
+    if (!file) return;
+
+    if (file.name.toLowerCase().endsWith('.json') || file.type === 'application/json') {
+      if (onImportJson) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const text = event.target?.result;
+          if (typeof text === 'string') {
+            onImportJson(text);
+          }
+        };
+        reader.readAsText(file);
+      }
+    } else if (onFileUpload) {
       onFileUpload(file);
     }
   };
 
   return (
     <div
-      className="relative w-full max-w-full mx-auto bg-zinc-950 rounded-lg overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`relative w-full max-w-full mx-auto bg-zinc-950 rounded-lg overflow-hidden border shadow-2xl flex items-center justify-center transition-colors ${
+        isDraggingOver && isReady ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-zinc-800'
+      }`}
       style={{ maxHeight: 'calc(100vh - 280px)', ...aspectRatioStyle }}
     >
       {/* Native HTML5 Video Element */}
@@ -88,12 +109,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         />
       )}
 
+      {/* Active Video Drag-Over Drop Target Notification */}
+      {isDraggingOver && isReady && (
+        <div className="absolute inset-0 bg-blue-950/80 border-2 border-dashed border-blue-400 rounded-lg flex flex-col items-center justify-center z-30 pointer-events-none text-center p-6 backdrop-blur-xs">
+          <Upload className="w-10 h-10 text-blue-300 mb-2 animate-bounce" aria-hidden="true" />
+          <p className="text-sm font-bold text-white font-mono">Drop JSON Manifest or Video File</p>
+          <p className="text-xs text-blue-200 mt-1">
+            Release to import court evidence annotations or load new video
+          </p>
+        </div>
+      )}
+
       {/* Empty State Drag-and-Drop Evidence Workspace */}
       {!isReady && (
         <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
           onClick={() => dropInputRef.current?.click()}
           className={`absolute inset-0 flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-colors z-20 ${
             isDraggingOver

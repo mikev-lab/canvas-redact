@@ -46,8 +46,8 @@ export interface UseRedactionsReturn {
   cycleSelection: (direction?: 'forward' | 'backward') => void;
   /** Reset all redactions and clear selection */
   clearAll: () => void;
-  /** Import external evidence review JSON payload */
-  importPayload: (payload: ExportPayload) => boolean;
+  /** Import external evidence review JSON payload (replace or merge) */
+  importPayload: (payload: ExportPayload, mode?: 'replace' | 'merge') => boolean;
 }
 
 /**
@@ -311,13 +311,29 @@ export function useRedactions(
     setSelectedId(null);
   }, []);
 
-  const importPayload = useCallback((payload: ExportPayload): boolean => {
+  const importPayload = useCallback((payload: ExportPayload, mode: 'replace' | 'merge' = 'replace'): boolean => {
     const validated = validateAndSanitizeImport(JSON.stringify(payload));
     if (!validated) {
       return false;
     }
 
-    setRedactions(validated.redactions);
+    setRedactions((prev) => {
+      if (mode === 'merge') {
+        const existingIds = new Set(prev.map((r) => r.id));
+        const mergedBoxes = validated.redactions.map((r) => {
+          if (existingIds.has(r.id)) {
+            return {
+              ...r,
+              id: `redact-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            };
+          }
+          return r;
+        });
+        return [...prev, ...mergedBoxes];
+      }
+      return validated.redactions;
+    });
+
     const firstRedaction = validated.redactions[0];
     setSelectedId(firstRedaction ? firstRedaction.id : null);
     return true;

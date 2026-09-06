@@ -11,6 +11,8 @@ export interface HeaderProps {
   onFileUpload: (file: File) => void;
   /** Callback when user imports an evidence review JSON manifest */
   onImportJson: (rawJson: string) => boolean;
+  /** Callback to open evidence review JSON import modal */
+  onImportClick?: () => void;
   /** Callback to open evidence review JSON export modal */
   onExportClick: () => void;
   /** Callback to clear all active annotations */
@@ -35,6 +37,7 @@ export interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onFileUpload,
   onImportJson,
+  onImportClick,
   onExportClick,
   onClearAll,
   onToggleShortcuts,
@@ -154,7 +157,13 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Import Evidence JSON Manifest button */}
         <button
           type="button"
-          onClick={() => manifestInputRef.current?.click()}
+          onClick={() => {
+            if (onImportClick) {
+              onImportClick();
+            } else {
+              manifestInputRef.current?.click();
+            }
+          }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           aria-label="Import evidence review JSON manifest from disk"
         >

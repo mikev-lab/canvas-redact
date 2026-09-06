@@ -16,6 +16,8 @@ export interface ExportModalProps {
   onClose: () => void;
   /** Complete evidence export payload */
   payload: ExportPayload;
+  /** Optional switch to import modal callback */
+  onSwitchToImport?: () => void;
 }
 
 /**
@@ -24,7 +26,8 @@ export interface ExportModalProps {
 export const ExportModal: React.FC<ExportModalProps> = ({
   isOpen,
   onClose,
-  payload
+  payload,
+  onSwitchToImport
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -106,8 +109,22 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
         {/* Modal Footer Actions */}
         <div className="p-4 border-t border-zinc-800 flex items-center justify-between gap-3 bg-zinc-900/40">
-          <div className="text-xs text-zinc-400 font-mono">
-            Exported: {new Date(payload.metadata.exportedAt).toLocaleTimeString()}
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-zinc-400 font-mono">
+              Exported: {new Date(payload.metadata.exportedAt).toLocaleTimeString()}
+            </span>
+            {onSwitchToImport && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSwitchToImport();
+                }}
+                className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors ml-1"
+              >
+                Import manifest instead
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button

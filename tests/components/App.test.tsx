@@ -276,4 +276,20 @@ describe('App root component & global forensic keyboard coordinator', () => {
       expect(screen.queryByText(/AI FACE DETECTION & SUBJECT GALLERY/i)).not.toBeInTheDocument();
     });
   });
+
+  it('opens Import Manifest modal when Import JSON button is clicked in header', async () => {
+    render(<App />);
+
+    const importBtn = screen.getByRole('button', { name: /Import evidence review JSON manifest/i });
+    expect(importBtn).toBeInTheDocument();
+
+    fireEvent.click(importBtn);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/Import Evidence Review Manifest \(JSON v1.0.0\)/i)).toBeInTheDocument();
+
+    // Close with Escape
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByText(/Import Evidence Review Manifest/i)).not.toBeInTheDocument();
+  });
 });

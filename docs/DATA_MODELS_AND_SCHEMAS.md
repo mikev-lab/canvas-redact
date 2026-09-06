@@ -173,6 +173,21 @@ flowchart TD
    ```
 4. **Temporal Ordering:** Enforces $startMs \le endMs$ and sorts keyframe sequences chronologically ($t_i < t_{i+1}$).
 
+### 4.1 Manifest Ingestion Pathways & Conflict Resolution
+
+The application provides two complementary ingestion workflows:
+
+1. **Interactive Import Modal (`ImportModal.tsx`):**
+   - **Upload File Tab:** Drag-and-drop file dropzone or native file picker supporting `.json` files.
+   - **Paste JSON Tab:** Textarea with instantaneous schema validation and live preview card.
+   - **Diagnostic Feedback:** Error banners detail specific validation failures (e.g. missing metadata, invalid coordinates, or JSON syntax errors).
+   - **Live Metadata Card:** Previews source video name, dimensions, framerate, reviewer ID badge, and breakdown pills for Blur, Pixelate, Blackout, Keyframes, and AI-Assisted tags.
+2. **Direct Viewport Drag-and-Drop (`VideoPlayer.tsx`):**
+   - Dropping `.json` files directly onto the active video player immediately parses and admits annotations into state.
+3. **Conflict Resolution Policies:**
+   - **Replace All:** Overwrites current annotations with the imported manifest.
+   - **Merge with Existing:** Preserves existing annotations in state and appends imported annotations, using collision-free ID generation (`redact-${Date.now()}-${random}`) for duplicates.
+
 ---
 
 ## 5. Timecode Mathematics & Floating-Point Drift Prevention

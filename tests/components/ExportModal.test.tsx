@@ -76,4 +76,23 @@ describe('ExportModal component', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('triggers onSwitchToImport and closes modal when import manifest link is clicked', () => {
+    const onClose = vi.fn();
+    const onSwitchToImport = vi.fn();
+    render(
+      <ExportModal
+        isOpen={true}
+        onClose={onClose}
+        payload={samplePayload}
+        onSwitchToImport={onSwitchToImport}
+      />
+    );
+
+    const switchBtn = screen.getByRole('button', { name: /Import manifest instead/i });
+    fireEvent.click(switchBtn);
+
+    expect(onClose).toHaveBeenCalled();
+    expect(onSwitchToImport).toHaveBeenCalled();
+  });
 });
