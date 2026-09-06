@@ -141,3 +141,29 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Agent & AI Development Files (Stealth / Private)
+.agents/
+AGENTS.md
+agents.md
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+CLAUDE.md
+claude.md
+.claude/
+.gemini/
+.antigravity/
+.cline/
+.roo/
+*.agent.md
+*.agent.json
+
