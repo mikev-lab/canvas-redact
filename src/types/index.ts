@@ -51,6 +51,8 @@ export interface RedactionBox {
   bbox: NormalizedBBoxTuple;
   /** Optional chronologically ordered sequence of trajectory keyframes */
   keyframes?: RedactionKeyframe[];
+  /** Optional reviewer or employee identifier for forensic chain of custody tracking */
+  reviewerId?: string;
 }
 
 /**
@@ -100,6 +102,8 @@ export interface ExportPayload {
     };
     fps: number;
     exportedAt: string; // ISO 8601 UTC timestamp
+    /** Default reviewer or employee ID for export session */
+    reviewerId?: string;
   };
   redactions: RedactionBox[];
 }

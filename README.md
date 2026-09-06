@@ -34,6 +34,8 @@ Engineered specifically for evidence handling, **canvas-redact** operates **100%
   * **Solid Blackout:** Complete opaque censor masking with centered metadata labels.
 * **Dynamic Keyframe Trajectories & Moving Redactions:** Piecewise linear bounding box interpolation (`lerp`) across continuous timestamps at 60 FPS. Censorship moves smoothly with walking subjects, running suspects, or moving vehicles without popping.
 * **Rapid Forensic Censor Tracking Mode:** Specialized rotoscoping workflow tying keyframe recording and automatic stepping to the `Space` bar (or `M`/`Enter`), enabling operators to track moving targets frame-by-frame with zero friction.
+* **Decoder-Gated Smooth Reverse Playback:** Eliminates browser video decoder queue starvation and seek thrashing during `J` shuttle scrubbing by strictly gating seek requests on decoder readiness and binding immediate canvas redraws to the native `'seeked'` event.
+* **Personnel Chain of Custody & Reviewer ID Stamping:** Automatic employee / reviewer badge ID attribution stamped onto all newly created redaction entries and serialized into manifest metadata for court-admissible audit trails.
 * **Customizable Frame Jump Stepping:** Instant multi-frame navigation with configurable jump distances (1, 2, 5, 10, or 30 frames) triggered via `Shift + Left/Right Arrow` or quick-action toolbar buttons.
 * **Normalized Video Space $[0.0, 1.0]$:** All bounding box coordinates are calculated and stored as fractional ratios relative to intrinsic video dimensions, ensuring display invariance across responsive resizing, full-screen mode, and letterbox pillarboxing.
 * **8-Point Handle Transformation Geometry:** Interactive resize handles with automatic coordinate inversion math when dragged past opposing boundaries.
@@ -108,7 +110,8 @@ Exported redaction manifests validate against the public safety evidence review 
     "videoName": "bodycam_incident_04.mp4",
     "durationMs": 14200,
     "dimensions": { "width": 1920, "height": 1080 },
-    "exportedAt": "2026-09-06T00:30:00.000Z"
+    "exportedAt": "2026-09-06T00:30:00.000Z",
+    "reviewerId": "OFC-4921"
   },
   "redactions": [
     {
@@ -117,7 +120,8 @@ Exported redaction manifests validate against the public safety evidence review 
       "type": "blur",
       "startMs": 1200,
       "endMs": 5400,
-      "bbox": [0.42, 0.18, 0.14, 0.22]
+      "bbox": [0.42, 0.18, 0.14, 0.22],
+      "reviewerId": "OFC-4921"
     }
   ]
 }

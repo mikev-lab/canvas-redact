@@ -234,4 +234,23 @@ describe('App root component & global forensic keyboard coordinator', () => {
     // Press Alt+ArrowRight to jump forward to next keyframe
     fireEvent.keyDown(window, { key: 'ArrowRight', altKey: true });
   });
+
+  it('updates Reviewer ID in Header and includes it in Export modal preview', async () => {
+    render(<App />);
+    await loadTestAnnotations();
+
+    // Find Reviewer ID input in Header
+    const reviewerInput = screen.getByPlaceholderText(/Reviewer ID/i);
+    fireEvent.change(reviewerInput, { target: { value: 'OFC-4921' } });
+    expect(reviewerInput).toHaveValue('OFC-4921');
+
+    // Click Export JSON button
+    const exportBtn = screen.getByRole('button', { name: /Export evidence JSON/i });
+    fireEvent.click(exportBtn);
+
+    // Modal dialog should display the Reviewer ID badge
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/Reviewer: OFC-4921/i)).toBeInTheDocument();
+    expect(screen.getByText(/"reviewerId": "OFC-4921"/i)).toBeInTheDocument();
+  });
 });

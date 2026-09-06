@@ -320,3 +320,31 @@ To minimize operator fatigue during evidence redaction:
   - When Tracking Mode is disabled (or no box is selected): `Space` acts as standard forensic Play/Pause toggle.
 * **Direct Keyframe Hotkeys:** `Enter` or `M` to record in place, `Alt + Left/Right Arrow` to navigate between keyframes, and `Shift + Left/Right Arrow` to step by custom jump intervals.
 
+---
+
+## 11. Decoder-Gated Reverse Playback & Personnel Chain of Custody Attribution
+
+### 11.1 The Hardware Decoder Starvation Problem
+HTML5 `<video>` specifications do not support negative playback rates (`playbackRate = -1` or `-2`). Emulated reverse playback via `video.currentTime = targetSec` inside standard 60 FPS `requestAnimationFrame` loops fails in browser rendering engines:
+1. Video codecs (H.264, VP9, AV1, HEVC) are forward-predictive. Seeking backward requires the browser to locate the preceding I-frame (keyframe) and decode forward to the target frame.
+2. Issuing a new `currentTime` assignment every 16.67ms cancels the pending decode pipeline before completion (`video.seeking === true`), resulting in black screens, frozen frames, or multi-second stalls until playback stops.
+
+### 11.2 Decoder-Gated Seeking Formulation
+To guarantee smooth, continuous reverse playback at -1x, -2x, and -4x without freezing:
+1. Accumulated wall-clock target time is tracked independently:
+   $$t_{\text{target}}(t + \Delta t) = \max(0, t_{\text{target}}(t) - \Delta t \times |R|)$$
+2. Seek operations are strictly gated on hardware decoder readiness:
+   $$\text{DispatchSeek}(t_{\text{target}}) \iff \neg \text{video.seeking} \land \neg \text{isSeekingRef.current}$$
+3. When the browser finishes decoding the target frame, it fires the native `'seeked'` event:
+   - `isSeekingRef.current` is cleared.
+   - `currentTimeMs` is synchronized to `video.currentTime * 1000`.
+   - If the accumulated target time has drifted further backward during the decode, the next seek is dispatched immediately without waiting for the next RAF tick.
+4. `CanvasOverlay` synchronizes by keeping its 60 FPS RAF loop active during reverse shuttle (`isPlaying || shuttleRate !== 0`) and binding an immediate `renderFrame()` invocation directly to the `'seeked'` event.
+
+### 11.3 Personnel Chain of Custody (`reviewerId`)
+Court evidence standards mandate clear provenance of who applied privacy censorship to media:
+* **Reviewer ID Stamping:** The application header provides an operator badge / employee ID input (e.g. `OFC-4921`).
+* **Automatic Attribution:** Every newly created redaction automatically inherits the active `reviewerId`.
+* **Segment Editing:** Operators can review and adjust the reviewer ID for individual redaction segments in the inspector.
+* **Manifest Persistence:** Exported and imported JSON manifests serialize `metadata.reviewerId` and per-box `reviewerId` attributes with defense-in-depth sanitization against XSS and control characters.
+

@@ -8,6 +8,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useVideoPlayback } from './hooks/useVideoPlayback';
 import { useRedactions } from './hooks/useRedactions';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
+import { RedactionBox } from './types';
 import { createExportPayload, validateAndSanitizeImport } from './utils/export';
 import { findSurroundingKeyframes } from './utils/keyframes';
 import { msToTimecode } from './utils/timecode';
@@ -26,6 +27,7 @@ export default function App(): React.ReactElement {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isTrackingMode, setIsTrackingMode] = useState(false);
   const [jumpFrames, setJumpFrames] = useState(5);
+  const [reviewerId, setReviewerId] = useState('');
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // 1. Media Playback Hook
@@ -33,6 +35,14 @@ export default function App(): React.ReactElement {
 
   // 2. Redaction Annotation State Hook
   const redactionsState = useRedactions(playback.currentTimeMs);
+
+  // Automatic chain of custody reviewer attribution on newly drawn redactions
+  const handleAddRedaction = useCallback((box: Omit<RedactionBox, 'id'>): string => {
+    return redactionsState.addRedaction({
+      ...box,
+      reviewerId: box.reviewerId || reviewerId || undefined
+    });
+  }, [redactionsState, reviewerId]);
 
   // 3. Direct Canvas Pointer Interaction Hook
   const interaction = useCanvasInteraction({
@@ -43,7 +53,7 @@ export default function App(): React.ReactElement {
     videoDurationMs: playback.durationMs,
     defaultSpanMs: 3000,
     defaultType: 'blur',
-    onAddRedaction: redactionsState.addRedaction,
+    onAddRedaction: handleAddRedaction,
     onUpdateRedaction: redactionsState.updateRedaction,
     onSelectRedaction: redactionsState.selectRedaction
   });
@@ -61,6 +71,9 @@ export default function App(): React.ReactElement {
       const payload = validateAndSanitizeImport(rawJson);
       const success = redactionsState.importPayload(payload);
       if (success) {
+        if (payload.metadata.reviewerId) {
+          setReviewerId(payload.metadata.reviewerId);
+        }
         setNotification({
           message: `Successfully imported ${payload.redactions.length} redactions from manifest.`,
           type: 'success'
@@ -250,7 +263,8 @@ export default function App(): React.ReactElement {
       },
       fps: playback.fps
     },
-    redactionsState.redactions
+    redactionsState.redactions,
+    reviewerId || undefined
   );
 
   return (
@@ -264,6 +278,8 @@ export default function App(): React.ReactElement {
         onToggleShortcuts={() => setIsShortcutsOpen(true)}
         hasMedia={playback.isReady}
         redactionCount={redactionsState.redactions.length}
+        reviewerId={reviewerId}
+        onReviewerIdChange={setReviewerId}
       />
 
       {/* Accessible notification toast */}
@@ -310,7 +326,7 @@ export default function App(): React.ReactElement {
               currentDragRect={interaction.currentDragRect}
               activeHandle={interaction.activeHandle}
               cursorStyle={interaction.cursorStyle}
-              isPlaying={playback.isPlaying}
+              isPlaying={playback.isPlaying || playback.shuttleRate !== 0}
               currentTimeMs={playback.currentTimeMs}
               onPointerDown={interaction.handlePointerDown}
               onPointerMove={interaction.handleCanvasPointerMove}

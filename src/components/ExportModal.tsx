@@ -77,8 +77,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <h2 id="export-modal-title" className="text-sm font-bold text-white font-mono">
                 Evidence Review Manifest (JSON v1.0.0)
               </h2>
-              <p className="text-xs text-zinc-400">
-                {payload.redactions.length} annotations verified for court review or post-processing
+              <p className="text-xs text-zinc-400 flex items-center gap-2 flex-wrap">
+                <span>{payload.redactions.length} annotations verified for court review</span>
+                {payload.metadata.reviewerId && (
+                  <span className="px-1.5 py-0.5 rounded bg-blue-950 text-blue-300 font-mono text-[10px] border border-blue-800">
+                    Reviewer: {payload.metadata.reviewerId}
+                  </span>
+                )}
               </p>
             </div>
           </div>

@@ -202,6 +202,21 @@ export const CanvasOverlay: React.FC<CanvasOverlayProps> = ({
     };
   }, [isPlaying, currentTimeMs, renderFrame]);
 
+  // Synchronize canvas redraw immediately when video decoder finishes any seek
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleSeeked = () => {
+      renderFrame();
+    };
+
+    video.addEventListener('seeked', handleSeeked);
+    return () => {
+      video.removeEventListener('seeked', handleSeeked);
+    };
+  }, [videoRef, renderFrame]);
+
   return (
     <canvas
       ref={canvasRef}

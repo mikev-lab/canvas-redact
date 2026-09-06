@@ -19,16 +19,35 @@ export function sanitizeLabel(raw: string): string {
 }
 
 /**
+ * Strips HTML tags, script contents, and dangerous characters from reviewer or employee identifiers.
+ *
+ * @param raw - Raw identifier string.
+ * @returns Sanitized string or undefined if empty.
+ */
+export function sanitizeIdentifier(raw?: unknown): string | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const withoutScripts = raw
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  const cleaned = withoutScripts.replace(/<[^>]*>?/gm, '').replace(/[\x00-\x1F\x7F]/g, '').trim();
+  return cleaned.length > 0 ? cleaned : undefined;
+}
+
+/**
  * Assembles an evidence review export payload compliant with the v1.0.0 JSON schema contract.
  *
  * @param videoMeta - Metadata describing the active media file.
  * @param redactions - List of active and inactive redaction bounding boxes.
+ * @param defaultReviewerId - Optional reviewer or employee ID for the session.
  * @returns Fully populated, validated ExportPayload.
  */
 export function createExportPayload(
   videoMeta: VideoMetadata,
-  redactions: RedactionBox[]
+  redactions: RedactionBox[],
+  defaultReviewerId?: string
 ): ExportPayload {
+  const sanitizedDefaultReviewer = sanitizeIdentifier(defaultReviewerId);
+
   return {
     version: '1.0.0',
     metadata: {
@@ -41,33 +60,38 @@ export function createExportPayload(
       },
       fps: videoMeta.fps || 30,
       exportedAt: new Date().toISOString(),
+      ...(sanitizedDefaultReviewer ? { reviewerId: sanitizedDefaultReviewer } : {}),
     },
-    redactions: redactions.map((box) => ({
-      id: box.id,
-      label: sanitizeLabel(box.label),
-      type: box.type,
-      startMs: Math.round(box.startMs),
-      endMs: Math.round(box.endMs),
-      bbox: [
-        clamp(box.bbox[0], 0, 1),
-        clamp(box.bbox[1], 0, 1),
-        clamp(box.bbox[2], 0, 1 - clamp(box.bbox[0], 0, 1)),
-        clamp(box.bbox[3], 0, 1 - clamp(box.bbox[1], 0, 1)),
-      ],
-      ...(box.keyframes && box.keyframes.length > 0
-        ? {
-            keyframes: box.keyframes.map((k) => ({
-              timeMs: Math.round(k.timeMs),
-              bbox: [
-                clamp(k.bbox[0], 0, 1),
-                clamp(k.bbox[1], 0, 1),
-                clamp(k.bbox[2], 0, 1 - clamp(k.bbox[0], 0, 1)),
-                clamp(k.bbox[3], 0, 1 - clamp(k.bbox[1], 0, 1)),
-              ],
-            })),
-          }
-        : {}),
-    })),
+    redactions: redactions.map((box) => {
+      const boxReviewer = sanitizeIdentifier(box.reviewerId) || sanitizedDefaultReviewer;
+      return {
+        id: box.id,
+        label: sanitizeLabel(box.label),
+        type: box.type,
+        startMs: Math.round(box.startMs),
+        endMs: Math.round(box.endMs),
+        bbox: [
+          clamp(box.bbox[0], 0, 1),
+          clamp(box.bbox[1], 0, 1),
+          clamp(box.bbox[2], 0, 1 - clamp(box.bbox[0], 0, 1)),
+          clamp(box.bbox[3], 0, 1 - clamp(box.bbox[1], 0, 1)),
+        ],
+        ...(box.keyframes && box.keyframes.length > 0
+          ? {
+              keyframes: box.keyframes.map((k) => ({
+                timeMs: Math.round(k.timeMs),
+                bbox: [
+                  clamp(k.bbox[0], 0, 1),
+                  clamp(k.bbox[1], 0, 1),
+                  clamp(k.bbox[2], 0, 1 - clamp(k.bbox[0], 0, 1)),
+                  clamp(k.bbox[3], 0, 1 - clamp(k.bbox[1], 0, 1)),
+                ],
+              })),
+            }
+          : {}),
+        ...(boxReviewer ? { reviewerId: boxReviewer } : {}),
+      };
+    }),
   };
 }
 
@@ -111,6 +135,7 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
   const videoName = typeof meta.videoName === 'string' ? meta.videoName : 'imported_video.mp4';
   const durationMs = typeof meta.durationMs === 'number' ? Math.max(0, meta.durationMs) : 0;
   const fps = typeof meta.fps === 'number' ? meta.fps : 30;
+  const metaReviewerId = sanitizeIdentifier(meta.reviewerId);
 
   let width = 1920;
   let height = 1080;
@@ -132,6 +157,7 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
 
     const id = typeof rawBox.id === 'string' ? rawBox.id : `redact-${Date.now()}-${i}`;
     const label = sanitizeLabel(typeof rawBox.label === 'string' ? rawBox.label : `Redaction ${i + 1}`);
+    const boxReviewerId = sanitizeIdentifier(rawBox.reviewerId) || metaReviewerId;
 
     let type: RedactionType = 'blur';
     if (rawBox.type === 'pixelate' || rawBox.type === 'blackout') {
@@ -193,6 +219,7 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
       endMs: Math.max(0, endMs),
       bbox,
       ...(keyframes ? { keyframes } : {}),
+      ...(boxReviewerId ? { reviewerId: boxReviewerId } : {}),
     });
   }
 
@@ -205,6 +232,7 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
       dimensions: { width, height },
       fps,
       exportedAt: typeof meta.exportedAt === 'string' ? meta.exportedAt : new Date().toISOString(),
+      ...(metaReviewerId ? { reviewerId: metaReviewerId } : {}),
     },
     redactions: sanitizedRedactions,
   };

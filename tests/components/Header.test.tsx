@@ -135,4 +135,27 @@ describe('Header component', () => {
     const manifestInput = screen.getByLabelText(/Upload evidence review JSON manifest file/i) as HTMLInputElement;
     expect(manifestInput).toBeInTheDocument();
   });
+
+  it('renders Reviewer ID input and invokes onReviewerIdChange callback', () => {
+    const onReviewerIdChange = vi.fn();
+    render(
+      <Header
+        onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
+        onExportClick={vi.fn()}
+        onClearAll={vi.fn()}
+        onToggleShortcuts={vi.fn()}
+        hasMedia={true}
+        redactionCount={1}
+        reviewerId="OFC-4921"
+        onReviewerIdChange={onReviewerIdChange}
+      />
+    );
+
+    const reviewerInput = screen.getByPlaceholderText(/Reviewer ID/i);
+    expect(reviewerInput).toHaveValue('OFC-4921');
+
+    fireEvent.change(reviewerInput, { target: { value: 'DET-8832' } });
+    expect(onReviewerIdChange).toHaveBeenCalledWith('DET-8832');
+  });
 });

@@ -4,7 +4,7 @@
  */
 
 import React, { useRef } from 'react';
-import { Shield, Upload, Download, Trash2, HelpCircle, FolderInput } from 'lucide-react';
+import { Shield, Upload, Download, Trash2, HelpCircle, FolderInput, UserCheck } from 'lucide-react';
 
 export interface HeaderProps {
   /** Callback when user selects a local video file */
@@ -21,6 +21,10 @@ export interface HeaderProps {
   hasMedia: boolean;
   /** Total count of redaction boxes */
   redactionCount: number;
+  /** Active reviewer or employee ID for chain of custody tracking */
+  reviewerId?: string;
+  /** Callback when reviewer or employee ID updates */
+  onReviewerIdChange?: (id: string) => void;
 }
 
 /**
@@ -33,7 +37,9 @@ export const Header: React.FC<HeaderProps> = ({
   onClearAll,
   onToggleShortcuts,
   hasMedia,
-  redactionCount
+  redactionCount,
+  reviewerId = '',
+  onReviewerIdChange
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const manifestInputRef = useRef<HTMLInputElement>(null);
@@ -112,6 +118,23 @@ export const Header: React.FC<HeaderProps> = ({
           tabIndex={-1}
           aria-label="Upload evidence review JSON manifest file"
         />
+
+        {/* Reviewer / Employee ID Badge Input */}
+        <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-700 rounded px-2.5 py-1 text-xs focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 transition-all">
+          <UserCheck className="w-3.5 h-3.5 text-blue-400 shrink-0" aria-hidden="true" />
+          <label htmlFor="reviewer-id-input" className="sr-only">
+            Reviewer or Employee ID for forensic chain of custody
+          </label>
+          <input
+            id="reviewer-id-input"
+            type="text"
+            value={reviewerId}
+            onChange={(e) => onReviewerIdChange?.(e.target.value)}
+            placeholder="Reviewer ID (e.g. OFC-4921)"
+            className="bg-transparent text-xs text-white placeholder-zinc-500 w-28 sm:w-44 focus:outline-none font-mono"
+            title="Reviewer or Employee ID automatically stamped on new redactions for chain of custody"
+          />
+        </div>
 
         {/* Open Local Video File button (Primary Action) */}
         <button

@@ -20,7 +20,8 @@ import {
   Crosshair,
   Bookmark,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  UserCheck
 } from 'lucide-react';
 
 export interface AnnotationSidebarProps {
@@ -144,6 +145,27 @@ export const AnnotationSidebar: React.FC<AnnotationSidebarProps> = ({
                   className="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-white placeholder-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 />
                 <Tag className="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 top-2.5 pointer-events-none" aria-hidden="true" />
+              </div>
+            </div>
+
+            {/* Reviewer / Employee ID Input */}
+            <div>
+              <label
+                htmlFor="redaction-reviewer-input"
+                className="block text-[11px] font-medium text-zinc-300 mb-1"
+              >
+                Reviewer / Employee ID
+              </label>
+              <div className="relative">
+                <input
+                  id="redaction-reviewer-input"
+                  type="text"
+                  value={selectedRedaction.reviewerId || ''}
+                  onChange={(e) => onUpdateRedaction(selectedRedaction.id, { reviewerId: e.target.value })}
+                  placeholder="e.g. OFC-4921"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded px-2.5 py-1.5 text-xs text-white font-mono placeholder-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                />
+                <UserCheck className="w-3.5 h-3.5 text-zinc-500 absolute right-2.5 top-2.5 pointer-events-none" aria-hidden="true" />
               </div>
             </div>
 

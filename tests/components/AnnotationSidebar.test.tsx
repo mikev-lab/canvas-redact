@@ -68,6 +68,11 @@ describe('AnnotationSidebar component', () => {
     fireEvent.change(labelInput, { target: { value: 'Updated Suspect' } });
     expect(onUpdateRedaction).toHaveBeenCalledWith('box-1', { label: 'Updated Suspect' });
 
+    // Reviewer ID input
+    const reviewerInput = screen.getByLabelText(/Reviewer \/ Employee ID/i);
+    fireEvent.change(reviewerInput, { target: { value: 'OFC-9912' } });
+    expect(onUpdateRedaction).toHaveBeenCalledWith('box-1', { reviewerId: 'OFC-9912' });
+
     // Treatment selector: change to pixelate
     const pixelateBtn = screen.getByRole('radio', { name: /pixelate/i });
     fireEvent.click(pixelateBtn);

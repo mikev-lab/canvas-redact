@@ -84,6 +84,8 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
   const activeBlobUrlRef = useRef<string | null>(null);
   const rafIdRef = useRef<number | null>(null);
   const lastReverseTickRef = useRef<number | null>(null);
+  const isSeekingRef = useRef(false);
+  const targetReverseTimeRef = useRef(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
@@ -134,20 +136,27 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
           setCurrentTimeMs(ms);
         }
 
-        // Reverse shuttle emulation loop
+        // Reverse shuttle emulation loop with decoder gating
         if (shuttleRate < 0) {
           if (lastReverseTickRef.current !== null) {
             const deltaSec = (timestamp - lastReverseTickRef.current) / 1000;
             const stepSec = deltaSec * Math.abs(shuttleRate);
-            const targetSec = Math.max(0, video.currentTime - stepSec);
+            targetReverseTimeRef.current = Math.max(0, targetReverseTimeRef.current - stepSec);
 
-            video.currentTime = targetSec;
-            setCurrentTimeMs(Math.round(targetSec * 1000));
-
-            if (targetSec <= 0) {
+            if (targetReverseTimeRef.current <= 0) {
               setShuttleRate(0);
+              targetReverseTimeRef.current = 0;
+              isSeekingRef.current = false;
+              video.currentTime = 0;
+              setCurrentTimeMs(0);
               video.pause();
+            } else if (!isSeekingRef.current && !video.seeking) {
+              // Decoder-gated seek: only dispatch seek when hardware decoder is ready
+              isSeekingRef.current = true;
+              video.currentTime = targetReverseTimeRef.current;
             }
+          } else {
+            targetReverseTimeRef.current = video.currentTime;
           }
           lastReverseTickRef.current = timestamp;
         } else {
@@ -172,6 +181,30 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
       }
     };
   }, [isPlaying, shuttleRate]);
+
+  // Synchronize state and trigger subsequent seeks upon video decoder seek completion
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleSeeked = () => {
+      isSeekingRef.current = false;
+      const ms = Math.round(video.currentTime * 1000);
+      setCurrentTimeMs(ms);
+
+      // If in reverse shuttle and target time has drifted further backward during decode,
+      // dispatch next seek immediately to avoid waiting for next RAF frame
+      if (shuttleRate < 0 && targetReverseTimeRef.current < video.currentTime && !video.seeking) {
+        isSeekingRef.current = true;
+        video.currentTime = targetReverseTimeRef.current;
+      }
+    };
+
+    video.addEventListener('seeked', handleSeeked);
+    return () => {
+      video.removeEventListener('seeked', handleSeeked);
+    };
+  }, [shuttleRate]);
 
   // Clean up Object URLs when unmounting
   useEffect(() => {
@@ -202,6 +235,8 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
     if (!video) return;
 
     setShuttleRate(0);
+    isSeekingRef.current = false;
+    lastReverseTickRef.current = null;
     video.pause();
     setIsPlaying(false);
     syncFromVideo();
@@ -227,6 +262,8 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
       : durationMs;
 
     const clampedMs = Math.max(0, Math.min(targetMs, maxMs));
+    targetReverseTimeRef.current = clampedMs / 1000;
+    isSeekingRef.current = false;
     video.currentTime = clampedMs / 1000;
     setCurrentTimeMs(clampedMs);
   }, [durationMs]);
@@ -240,6 +277,8 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
       video.pause();
     }
     setShuttleRate(0);
+    isSeekingRef.current = false;
+    lastReverseTickRef.current = null;
     setIsPlaying(false);
 
     const deltaFrames = direction === 'forward' ? frameCount : -frameCount;
@@ -249,6 +288,7 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
       : durationMs;
 
     const nextMs = stepFrameTime(currentMs, deltaFrames, maxMs, fps);
+    targetReverseTimeRef.current = nextMs / 1000;
     video.currentTime = nextMs / 1000;
     setCurrentTimeMs(Math.round(nextMs));
   }, [durationMs, fps]);
@@ -302,6 +342,9 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
       nextRate = -4;
     }
 
+    targetReverseTimeRef.current = video.currentTime;
+    isSeekingRef.current = false;
+    lastReverseTickRef.current = null;
     setShuttleRate(nextRate);
   }, [shuttleRate]);
 

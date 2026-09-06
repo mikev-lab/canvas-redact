@@ -192,4 +192,29 @@ describe('useVideoPlayback hook', () => {
     expect(mockVideo.muted).toBe(true);
     expect(result.current.isMuted).toBe(true);
   });
+
+  it('updates currentTimeMs and clears seeking flag upon seeked event during reverse shuttle', () => {
+    const { result } = renderHook(() => useVideoPlayback());
+    (result.current.videoRef as unknown as { current: HTMLVideoElement }).current = mockVideo;
+
+    // Set duration and seek to 5000ms
+    act(() => {
+      result.current.seekToMs(5000);
+    });
+    expect(result.current.currentTimeMs).toBe(5000);
+
+    // Start reverse shuttle
+    act(() => {
+      result.current.shuttleReverse();
+    });
+    expect(result.current.shuttleRate).toBe(-1);
+
+    // Simulate video element decoding and completing a seek to 4900ms
+    mockVideo.currentTime = 4.9;
+    act(() => {
+      mockVideo.dispatchEvent(new Event('seeked'));
+    });
+
+    expect(result.current.currentTimeMs).toBe(4900);
+  });
 });

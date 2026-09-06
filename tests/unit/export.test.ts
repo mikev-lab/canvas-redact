@@ -152,6 +152,37 @@ describe('Evidence Export & Import Sanitization', () => {
       expect(imported.redactions[0]?.keyframes?.[0]?.timeMs).toBe(1000);
       expect(imported.redactions[0]?.keyframes?.[1]?.timeMs).toBe(3000);
     });
+
+    it('attaches, sanitizes, and preserves reviewerId on metadata and redaction items', () => {
+      const boxWithReviewer: RedactionBox = {
+        ...mockRedactions[0]!,
+        reviewerId: '<script>alert(1)</script>OFC-4921',
+      };
+      const boxWithoutReviewer: RedactionBox = {
+        ...mockRedactions[1]!,
+      };
+
+      const exported = createExportPayload(
+        mockVideoMeta,
+        [boxWithReviewer, boxWithoutReviewer],
+        '<b>DEFAULT-REVIEWER</b>'
+      );
+
+      // Metadata receives sanitized default reviewer ID
+      expect(exported.metadata.reviewerId).toBe('DEFAULT-REVIEWER');
+
+      // Box 1 retains its own sanitized reviewer ID
+      expect(exported.redactions[0]?.reviewerId).toBe('OFC-4921');
+
+      // Box 2 falls back to the session default reviewer ID
+      expect(exported.redactions[1]?.reviewerId).toBe('DEFAULT-REVIEWER');
+
+      // Importing preserves reviewerId
+      const imported = validateAndSanitizeImport(JSON.stringify(exported));
+      expect(imported.metadata.reviewerId).toBe('DEFAULT-REVIEWER');
+      expect(imported.redactions[0]?.reviewerId).toBe('OFC-4921');
+      expect(imported.redactions[1]?.reviewerId).toBe('DEFAULT-REVIEWER');
+    });
   });
 
   describe('downloadJsonFile', () => {
