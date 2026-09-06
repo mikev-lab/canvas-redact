@@ -61,8 +61,7 @@ To prevent blurriness on Retina and high-DPI displays, the backing store buffer 
 $$\text{Buffer Width} = \text{round}(R.\text{width} \times DPR), \qquad \text{Buffer Height} = \text{round}(R.\text{height} \times DPR)$$
 
 Before each RAF frame render, the 2D graphics context scales coordinates by $DPR$:
-
-$$\text{ctx.setTransform}(DPR, 0, 0, DPR, 0, 0)$$
+`ctx.setTransform(DPR, 0, 0, DPR, 0, 0);`
 
 ### 2.3 Boundary Inversion & Normalization Math
 When a user drags an 8-point resize handle past an opposing edge (e.g., dragging the Top-Left handle below and to the right of the Bottom-Right handle), the width or height becomes negative. The coordinate engine automatically re-normalizes the origin without jumping or throwing arithmetic errors:
@@ -86,7 +85,7 @@ Redaction filters are executed directly on the canvas buffer in real time at 60 
 Applies a soft Gaussian blur filter directly to the bounding box region:
 1. Save canvas graphics context: `ctx.save()`.
 2. Define rectangular clipping path matching the screen bounding box:
-   $$\text{ctx.beginPath}(); \quad \text{ctx.rect}(x, y, w, h); \quad \text{ctx.clip}()$$
+   `ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();`
 3. Configure GPU filter: `ctx.filter = 'blur(12px)'`.
 4. Sample current video frame: `ctx.drawImage(video, 0, 0, width, height)`.
 5. Restore context: `ctx.restore()`.
@@ -95,16 +94,16 @@ Applies a soft Gaussian blur filter directly to the bounding box region:
 Generates discrete censorship mosaic blocks by downsampling the target region onto a reusable offscreen scratch canvas with image smoothing disabled:
 1. Target downsample block size: $S = 8\text{px}$ (scaled to bounding box dimension).
 2. Draw target video region scaled down to scratch buffer:
-   $$\text{scratchCtx.drawImage}(video, sx, sy, sw, sh, 0, 0, \text{blocksX}, \text{blocksY})$$
+   `scratchCtx.drawImage(video, sx, sy, sw, sh, 0, 0, blocksX, blocksY);`
 3. Disable bicubic interpolation:
-   $$\text{ctx.imageSmoothingEnabled} = \text{false}$$
+   `ctx.imageSmoothingEnabled = false;`
 4. Upscale scratch buffer back onto main canvas region:
-   $$\text{ctx.drawImage}(scratchCanvas, 0, 0, \text{blocksX}, \text{blocksY}, x, y, w, h)$$
+   `ctx.drawImage(scratchCanvas, 0, 0, blocksX, blocksY, x, y, w, h);`
 
 ### 3.3 Opaque Blackout Censor
 Renders an impenetrable privacy mask for sensitive identifiers:
 1. Render solid opaque rectangle:
-   $$\text{ctx.fillStyle} = '\#000000'; \quad \text{ctx.fillRect}(x, y, w, h)$$
+   `ctx.fillStyle = '#000000'; ctx.fillRect(x, y, w, h);`
 2. Render sanitized label badge (e.g., `[REDACTED]` or `[SUSPECT FACE]`) with centered forensic font typography.
 
 ---
@@ -227,9 +226,14 @@ To streamline the redaction of long evidence videos containing moving individual
 ### 8.2 Tracking & Association Pipeline
 1. **Keyframe Sampling:** Video frames are sampled at discrete intervals onto an offscreen scratch canvas.
 2. **Face Detection & Landmark Extraction:** The local model detects candidate face bounding boxes $[nx, ny, nw, nh]$ and returns confidence scores.
-3. **Target Enrollment Vector:** When an operator identifies a subject to redact, the system extracts a facial embedding vector $\mathbf{v}_{\text{target}} \in \mathbb{R}^{128}$.
+3. **Target Enrollment Vector:** When an operator identifies a subject to redact, the system extracts a facial embedding vector $\mathbf{b} \in \mathbb{R}^{128}$.
 4. **Temporal Re-Identification:** In subsequent frames, candidate faces are matched against the enrolled target using cosine similarity combined with spatial Kalman filter projections:
-   $$\text{sim}(\mathbf{v}_j, \mathbf{v}_{\text{target}}) = \frac{\mathbf{v}_j \cdot \mathbf{v}_{\text{target}}}{\|\mathbf{v}_j\| \|\mathbf{v}_{\text{target}}\|}$$
+
+$$
+\text{similarity}(\mathbf{a}, \mathbf{b}) = \frac{\mathbf{a} \cdot \mathbf{b}}{\|\mathbf{a}\| \|\mathbf{b}\|}
+$$
+
+   where $\mathbf{a}$ represents the candidate face embedding vector and $\mathbf{b}$ represents the target enrolled embedding vector.
 5. **Timeline Interval Creation:** Matched trajectories are synthesized into standard `RedactionBox` entries with validity windows $[startMs, endMs]$.
 
 ---
