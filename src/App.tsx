@@ -8,7 +8,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useVideoPlayback } from './hooks/useVideoPlayback';
 import { useRedactions } from './hooks/useRedactions';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
-import { createSampleVideo } from './sample/createSampleVideo';
 import { createExportPayload, validateAndSanitizeImport } from './utils/export';
 
 import { Header } from './components/Header';
@@ -45,37 +44,6 @@ export default function App(): React.ReactElement {
     onSelectRedaction: redactionsState.selectRedaction
   });
 
-  // Handler to generate and load procedural synthetic CCTV demo
-  const handleLoadSample = useCallback(async () => {
-    try {
-      const sample = await createSampleVideo({
-        durationMs: 10000,
-        fps: 30,
-        width: 1280,
-        height: 720
-      });
-      playback.loadSource(sample.blob, sample.metadata.name);
-
-      // Pre-populate with sample bounding boxes matching moving targets
-      redactionsState.clearAll();
-      redactionsState.addRedaction({
-        label: 'Suspect Face',
-        type: 'blur',
-        startMs: 0,
-        endMs: 8000,
-        bbox: [0.15, 0.28, 0.12, 0.2]
-      });
-      redactionsState.addRedaction({
-        label: 'Vehicle Plate',
-        type: 'pixelate',
-        startMs: 1500,
-        endMs: 9500,
-        bbox: [0.35, 0.68, 0.16, 0.12]
-      });
-    } catch {
-      // Error loading synthetic sample
-    }
-  }, [playback, redactionsState]);
 
   // Handler for uploading local media file
   const handleFileUpload = useCallback((file: File) => {
@@ -224,7 +192,6 @@ export default function App(): React.ReactElement {
     <div className="flex flex-col min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-800 selection:text-white">
       {/* Top Header & Forensic Action Bar */}
       <Header
-        onLoadSample={handleLoadSample}
         onFileUpload={handleFileUpload}
         onImportJson={handleImportJson}
         onExportClick={() => setIsExportOpen(true)}
@@ -272,7 +239,6 @@ export default function App(): React.ReactElement {
               videoWidth={playback.videoWidth}
               videoHeight={playback.videoHeight}
               isReady={playback.isReady}
-              onLoadSample={handleLoadSample}
               onFileUpload={handleFileUpload}
               activeRedactions={redactionsState.activeRedactions}
               selectedId={redactionsState.selectedId}

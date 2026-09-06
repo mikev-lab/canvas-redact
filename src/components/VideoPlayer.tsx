@@ -14,8 +14,6 @@ export interface VideoPlayerProps extends Omit<CanvasOverlayProps, 'videoDimensi
   videoHeight: number;
   /** Whether video is loaded and ready for frame rendering */
   isReady: boolean;
-  /** Trigger to load sample CCTV video when empty */
-  onLoadSample: () => void;
   /** Optional file upload callback for drag-and-drop or file selection */
   onFileUpload?: (file: File) => void;
 }
@@ -29,7 +27,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoWidth,
   videoHeight,
   isReady,
-  onLoadSample,
   onFileUpload,
   ...canvasProps
 }) => {
@@ -139,22 +136,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             Drag and drop an MP4, WebM, MOV, or MKV file, or click to browse.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm">
+          <div className="flex items-center justify-center">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm">
               <Upload className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Select File</span>
             </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onLoadSample();
-              }}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4 decoration-zinc-700 hover:decoration-zinc-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              aria-label="Generate and load procedural synthetic CCTV demo evidence"
-            >
-              or load synthetic test clip
-            </button>
           </div>
         </div>
       )}

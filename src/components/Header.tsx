@@ -4,11 +4,9 @@
  */
 
 import React, { useRef } from 'react';
-import { Shield, Upload, Download, Trash2, Video, HelpCircle, FolderInput } from 'lucide-react';
+import { Shield, Upload, Download, Trash2, HelpCircle, FolderInput } from 'lucide-react';
 
 export interface HeaderProps {
-  /** Callback to trigger procedural synthetic CCTV demo generation */
-  onLoadSample: () => void;
   /** Callback when user selects a local video file */
   onFileUpload: (file: File) => void;
   /** Callback when user imports an evidence review JSON manifest */
@@ -29,7 +27,6 @@ export interface HeaderProps {
  * Top navigation and forensic utility toolbar.
  */
 export const Header: React.FC<HeaderProps> = ({
-  onLoadSample,
   onFileUpload,
   onImportJson,
   onExportClick,
@@ -127,17 +124,6 @@ export const Header: React.FC<HeaderProps> = ({
           <span>Open Video</span>
         </button>
 
-        {/* Compact Load CCTV Synthetic Demo button */}
-        <button
-          type="button"
-          onClick={onLoadSample}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          aria-label="Load synthetic demo clip"
-          title="Load procedural synthetic CCTV clip for testing"
-        >
-          <Video className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
-          <span>Demo Clip</span>
-        </button>
 
         {/* Import Evidence JSON Manifest button */}
         <button

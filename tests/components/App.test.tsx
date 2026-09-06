@@ -21,15 +21,55 @@ describe('App root component & global forensic keyboard coordinator', () => {
     expect(screen.getAllByText(/00:00:00:00/).length).toBeGreaterThan(0);
   });
 
-  it('opens and closes export modal via action button and escape key', async () => {
-    render(<App />);
+  const loadTestAnnotations = async () => {
+    const videoInput = screen.getAllByLabelText(/Upload evidence video file/i)[0] as HTMLInputElement;
+    const videoFile = new File(['fake video'], 'test.mp4', { type: 'video/mp4' });
+    fireEvent.change(videoInput, { target: { files: [videoFile] } });
 
-    const demoBtn = screen.getByRole('button', { name: /demo clip/i });
-    fireEvent.click(demoBtn);
+    const manifestInput = screen.getByLabelText(/Upload evidence review JSON manifest file/i) as HTMLInputElement;
+    const mockManifest = JSON.stringify({
+      version: '1.0.0',
+      metadata: {
+        source: 'canvas-redact',
+        videoName: 'test.mp4',
+        durationMs: 10000,
+        dimensions: { width: 1920, height: 1080 },
+        exportedAt: new Date().toISOString()
+      },
+      redactions: [
+        {
+          id: 'test-box-1',
+          label: 'Suspect Face',
+          type: 'blur',
+          startMs: 0,
+          endMs: 8000,
+          bbox: [0.15, 0.28, 0.12, 0.2]
+        }
+      ]
+    });
 
+    const file = new File([mockManifest], 'manifest.json', { type: 'application/json' });
+    const originalFileReader = window.FileReader;
+    class MockFileReader {
+      onload: ((e: { target: { result: string } }) => void) | null = null;
+      readAsText() {
+        if (this.onload) {
+          this.onload({ target: { result: mockManifest } });
+        }
+      }
+    }
+    // @ts-expect-error mocking FileReader for test
+    window.FileReader = MockFileReader;
+    fireEvent.change(manifestInput, { target: { files: [file] } });
     await waitFor(() => {
       expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
     });
+    window.FileReader = originalFileReader;
+  };
+
+  it('opens and closes export modal via action button and escape key', async () => {
+    render(<App />);
+    await loadTestAnnotations();
 
     const exportBtn = screen.getByRole('button', { name: /Export evidence JSON/i });
     await waitFor(() => expect(exportBtn).toBeEnabled());
@@ -45,13 +85,7 @@ describe('App root component & global forensic keyboard coordinator', () => {
 
   it('toggles forensic shortcuts guide via ? key', async () => {
     render(<App />);
-
-    const demoBtn = screen.getByRole('button', { name: /demo clip/i });
-    fireEvent.click(demoBtn);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
-    });
+    await loadTestAnnotations();
 
     fireEvent.keyDown(window, { key: '?' });
     expect(screen.getByText(/Forensic Keyboard Shortcuts/i)).toBeInTheDocument();
@@ -63,13 +97,7 @@ describe('App root component & global forensic keyboard coordinator', () => {
 
   it('bypasses global keyboard shortcuts when user is focused inside a text input', async () => {
     render(<App />);
-
-    const demoBtn = screen.getByRole('button', { name: /demo clip/i });
-    fireEvent.click(demoBtn);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
-    });
+    await loadTestAnnotations();
 
     // Select Suspect Face box to open inspector
     const suspectElements = screen.getAllByText('Suspect Face');

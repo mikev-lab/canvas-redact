@@ -6,7 +6,6 @@ describe('Header component', () => {
   it('renders application branding and version badge', () => {
     render(
       <Header
-        onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
         onImportJson={vi.fn()}
         onExportClick={vi.fn()}
@@ -21,11 +20,9 @@ describe('Header component', () => {
     expect(screen.getByText('v0.1.0')).toBeInTheDocument();
   });
 
-  it('triggers sample video generation on button click', () => {
-    const onLoadSample = vi.fn();
+  it('renders Open Video button for media upload', () => {
     render(
       <Header
-        onLoadSample={onLoadSample}
         onFileUpload={vi.fn()}
         onImportJson={vi.fn()}
         onExportClick={vi.fn()}
@@ -36,16 +33,14 @@ describe('Header component', () => {
       />
     );
 
-    const sampleBtn = screen.getByRole('button', { name: /demo/i });
-    fireEvent.click(sampleBtn);
-    expect(onLoadSample).toHaveBeenCalled();
+    const openBtn = screen.getByRole('button', { name: /Open local evidence media file/i });
+    expect(openBtn).toBeInTheDocument();
   });
 
   it('disables export button when no redactions are present', () => {
     const onExportClick = vi.fn();
     render(
       <Header
-        onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
         onImportJson={vi.fn()}
         onExportClick={onExportClick}
@@ -66,7 +61,6 @@ describe('Header component', () => {
     const onExportClick = vi.fn();
     render(
       <Header
-        onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
         onImportJson={vi.fn()}
         onExportClick={onExportClick}
@@ -87,7 +81,6 @@ describe('Header component', () => {
     const onClearAll = vi.fn();
     render(
       <Header
-        onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
         onImportJson={vi.fn()}
         onExportClick={vi.fn()}
@@ -107,7 +100,6 @@ describe('Header component', () => {
     const onFileUpload = vi.fn();
     render(
       <Header
-        onLoadSample={vi.fn()}
         onFileUpload={onFileUpload}
         onImportJson={vi.fn()}
         onExportClick={vi.fn()}
@@ -128,7 +120,6 @@ describe('Header component', () => {
   it('renders Import JSON button and triggers manifest input', () => {
     render(
       <Header
-        onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
         onImportJson={vi.fn()}
         onExportClick={vi.fn()}
