@@ -14,6 +14,24 @@ if (typeof window !== 'undefined') {
     clearTimeout(id);
   });
 
+  // Polyfill PointerEvent for JSDOM
+  if (!window.PointerEvent) {
+    class MockPointerEvent extends MouseEvent {
+      pointerId: number;
+      pointerType: string;
+
+      constructor(type: string, params: PointerEventInit = {}) {
+        super(type, params);
+        this.pointerId = params.pointerId || 0;
+        this.pointerType = params.pointerType || 'mouse';
+      }
+    }
+    // @ts-expect-error Polyfilling PointerEvent in JSDOM
+    window.PointerEvent = MockPointerEvent;
+    // @ts-expect-error Polyfilling PointerEvent in global
+    global.PointerEvent = MockPointerEvent;
+  }
+
   // Mock HTMLCanvasElement getContext('2d')
   HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
     if (contextId === '2d') {

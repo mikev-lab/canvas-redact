@@ -1,0 +1,250 @@
+/**
+ * React hook governing redaction bounding box annotation state,
+ * active temporal window slicing, selection, and evidence schema import.
+ */
+
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { RedactionBox, ExportPayload, NormalizedBBoxTuple, RedactionType } from '../types';
+import { sanitizeLabel, validateAndSanitizeImport } from '../utils/export';
+
+export interface UseRedactionsOptions {
+  /** Initial redaction collection */
+  initialRedactions?: RedactionBox[];
+  /** Default redaction category for newly created boxes */
+  defaultType?: RedactionType;
+}
+
+export interface UseRedactionsReturn {
+  /** All saved redactions */
+  redactions: RedactionBox[];
+  /** Currently selected redaction ID or null */
+  selectedId: string | null;
+  /** Active redaction entities visible at the current timecode */
+  activeRedactions: RedactionBox[];
+  /** The currently selected RedactionBox or null */
+  selectedRedaction: RedactionBox | null;
+  /** Create a new redaction box with unique ID and auto-selection */
+  addRedaction: (box: Omit<RedactionBox, 'id'>) => string;
+  /** Update existing redaction box attributes */
+  updateRedaction: (id: string, updates: Partial<Omit<RedactionBox, 'id'>>) => void;
+  /** Delete a redaction box by ID */
+  removeRedaction: (id: string) => void;
+  /** Set active selection by ID */
+  selectRedaction: (id: string | null) => void;
+  /** Adjust in-point (start timestamp) with automatic inversion correction */
+  setInPoint: (id: string, startMs: number) => void;
+  /** Adjust out-point (end timestamp) with automatic inversion correction */
+  setOutPoint: (id: string, endMs: number) => void;
+  /** Cycle selection forward or backward through visible redactions (Tab / Shift+Tab) */
+  cycleSelection: (direction?: 'forward' | 'backward') => void;
+  /** Reset all redactions and clear selection */
+  clearAll: () => void;
+  /** Import external evidence review JSON payload */
+  importPayload: (payload: ExportPayload) => boolean;
+}
+
+/**
+ * Custom hook providing state management and temporal slicing for video redaction annotations.
+ *
+ * @param currentTimeMs - Current playback timestamp in milliseconds.
+ * @param options - Initial configuration options.
+ * @returns Redaction collection state, active temporal slices, and mutation dispatchers.
+ */
+export function useRedactions(
+  currentTimeMs: number,
+  options: UseRedactionsOptions = {}
+): UseRedactionsReturn {
+  const [redactions, setRedactions] = useState<RedactionBox[]>(() => options.initialRedactions || []);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const idCounterRef = useRef(1);
+
+  // Active redactions filtered by current timecode window [startMs, endMs]
+  const activeRedactions = useMemo(() => {
+    return redactions.filter(r => currentTimeMs >= r.startMs && currentTimeMs <= r.endMs);
+  }, [redactions, currentTimeMs]);
+
+  // Selected redaction lookup
+  const selectedRedaction = useMemo(() => {
+    if (!selectedId) return null;
+    return redactions.find(r => r.id === selectedId) || null;
+  }, [redactions, selectedId]);
+
+  const addRedaction = useCallback((box: Omit<RedactionBox, 'id'>): string => {
+    const id = `redact-${Date.now()}-${idCounterRef.current++}`;
+    const sanitizedLabel = sanitizeLabel(box.label || 'Redaction');
+
+    // Ensure valid temporal bounds
+    const startMs = Math.min(box.startMs, box.endMs);
+    const endMs = Math.max(box.startMs, box.endMs);
+
+    // Ensure normalized bbox coordinates [0..1]
+    const clampedBbox: NormalizedBBoxTuple = [
+      Math.max(0, Math.min(1, box.bbox[0])),
+      Math.max(0, Math.min(1, box.bbox[1])),
+      Math.max(0, Math.min(1 - Math.max(0, Math.min(1, box.bbox[0])), box.bbox[2])),
+      Math.max(0, Math.min(1 - Math.max(0, Math.min(1, box.bbox[1])), box.bbox[3]))
+    ];
+
+    const newRedaction: RedactionBox = {
+      ...box,
+      id,
+      label: sanitizedLabel,
+      startMs,
+      endMs,
+      bbox: clampedBbox
+    };
+
+    setRedactions(prev => [...prev, newRedaction]);
+    setSelectedId(id);
+    return id;
+  }, []);
+
+  const updateRedaction = useCallback((id: string, updates: Partial<Omit<RedactionBox, 'id'>>) => {
+    setRedactions(prev =>
+      prev.map(r => {
+        if (r.id !== id) return r;
+
+        let nextLabel = r.label;
+        if (updates.label !== undefined) {
+          nextLabel = sanitizeLabel(updates.label);
+        }
+
+        let nextStartMs = updates.startMs !== undefined ? updates.startMs : r.startMs;
+        let nextEndMs = updates.endMs !== undefined ? updates.endMs : r.endMs;
+
+        // Auto-correct inverted start/end timestamps
+        if (nextStartMs > nextEndMs) {
+          const temp = nextStartMs;
+          nextStartMs = nextEndMs;
+          nextEndMs = temp;
+        }
+
+        let nextBbox = r.bbox;
+        if (updates.bbox) {
+          const [normX, normY, normW, normH] = updates.bbox;
+          const clampedX = Math.max(0, Math.min(1, normX));
+          const clampedY = Math.max(0, Math.min(1, normY));
+          const clampedW = Math.max(0, Math.min(1 - clampedX, normW));
+          const clampedH = Math.max(0, Math.min(1 - clampedY, normH));
+          nextBbox = [clampedX, clampedY, clampedW, clampedH];
+        }
+
+        return {
+          ...r,
+          ...updates,
+          label: nextLabel,
+          startMs: nextStartMs,
+          endMs: nextEndMs,
+          bbox: nextBbox
+        };
+      })
+    );
+  }, []);
+
+  const removeRedaction = useCallback((id: string) => {
+    setRedactions(prev => prev.filter(r => r.id !== id));
+    setSelectedId(prev => (prev === id ? null : prev));
+  }, []);
+
+  const selectRedaction = useCallback((id: string | null) => {
+    setSelectedId(id);
+  }, []);
+
+  const setInPoint = useCallback((id: string, startMs: number) => {
+    setRedactions(prev =>
+      prev.map(r => {
+        if (r.id !== id) return r;
+        // If new start point exceeds end point, auto-extend end point by 1000ms
+        const nextEndMs = startMs > r.endMs ? startMs + 1000 : r.endMs;
+        return {
+          ...r,
+          startMs,
+          endMs: nextEndMs
+        };
+      })
+    );
+  }, []);
+
+  const setOutPoint = useCallback((id: string, endMs: number) => {
+    setRedactions(prev =>
+      prev.map(r => {
+        if (r.id !== id) return r;
+        // If new out point precedes start point, auto-adjust start point
+        const nextStartMs = endMs < r.startMs ? Math.max(0, endMs - 1000) : r.startMs;
+        return {
+          ...r,
+          startMs: nextStartMs,
+          endMs
+        };
+      })
+    );
+  }, []);
+
+  const cycleSelection = useCallback((direction: 'forward' | 'backward' = 'forward') => {
+    const list = activeRedactions.length > 0 ? activeRedactions : redactions;
+    if (list.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+
+    if (!selectedId) {
+      const first = list[0];
+      const last = list[list.length - 1];
+      if (direction === 'forward' && first) {
+        setSelectedId(first.id);
+      } else if (last) {
+        setSelectedId(last.id);
+      }
+      return;
+    }
+
+    const currentIndex = list.findIndex(r => r.id === selectedId);
+    if (currentIndex === -1) {
+      const first = list[0];
+      if (first) setSelectedId(first.id);
+      return;
+    }
+
+    const nextIndex = direction === 'forward'
+      ? (currentIndex + 1) % list.length
+      : (currentIndex - 1 + list.length) % list.length;
+
+    const nextItem = list[nextIndex];
+    if (nextItem) {
+      setSelectedId(nextItem.id);
+    }
+  }, [activeRedactions, redactions, selectedId]);
+
+  const clearAll = useCallback(() => {
+    setRedactions([]);
+    setSelectedId(null);
+  }, []);
+
+  const importPayload = useCallback((payload: ExportPayload): boolean => {
+    const validated = validateAndSanitizeImport(JSON.stringify(payload));
+    if (!validated) {
+      return false;
+    }
+
+    setRedactions(validated.redactions);
+    const firstRedaction = validated.redactions[0];
+    setSelectedId(firstRedaction ? firstRedaction.id : null);
+    return true;
+  }, []);
+
+  return {
+    redactions,
+    selectedId,
+    activeRedactions,
+    selectedRedaction,
+    addRedaction,
+    updateRedaction,
+    removeRedaction,
+    selectRedaction,
+    setInPoint,
+    setOutPoint,
+    cycleSelection,
+    clearAll,
+    importPayload
+  };
+}
