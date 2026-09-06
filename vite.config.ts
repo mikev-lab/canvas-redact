@@ -23,10 +23,14 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
+        'dist/',
+        '.agents/',
         'tests/',
         'vite.config.ts',
         'tailwind.config.js',
-        'postcss.config.js'
+        'postcss.config.js',
+        'src/main.tsx',
+        'src/types/'
       ]
     }
   }
