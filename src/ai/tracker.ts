@@ -5,7 +5,14 @@
 
 import { NormalizedBBoxTuple, RedactionKeyframe, RedactionType } from '../types';
 import { clamp } from '../utils/coordinates';
-import { RawDetection, TrackSample, TrackedSubject, Tracklet } from './types';
+import {
+  KEYFRAME_DENSITY_PROFILES,
+  KeyframeDensity,
+  RawDetection,
+  TrackSample,
+  TrackedSubject,
+  Tracklet,
+} from './types';
 import { extractFaceThumbnail } from './faceExtractor';
 
 /**
@@ -244,13 +251,15 @@ export class SORTTracker {
    * @param frameWidth - Video frame width in pixels.
    * @param frameHeight - Video frame height in pixels.
    * @param defaultType - Default visual redaction treatment (default: 'blur').
+   * @param density - User-selected keyframe density profile (default: 'balanced').
    * @returns Array of detected subjects.
    */
   public getConfirmedSubjects(
     frameSource?: CanvasImageSource,
     frameWidth: number = 1920,
     frameHeight: number = 1080,
-    defaultType: RedactionType = 'blur'
+    defaultType: RedactionType = 'blur',
+    density: KeyframeDensity = 'balanced'
   ): TrackedSubject[] {
     const confirmed = this.tracks.filter((t) => t.hits >= this.minHits);
 
@@ -260,7 +269,7 @@ export class SORTTracker {
       const endMs = sortedSamples[sortedSamples.length - 1]?.timeMs ?? startMs + 1000;
 
       // Extract keyframes: downsample dense detections into smooth keyframe trajectory
-      const trajectory: RedactionKeyframe[] = downsampleKeyframes(sortedSamples);
+      const trajectory: RedactionKeyframe[] = downsampleKeyframes(sortedSamples, density);
 
       // Extract face avatar thumbnail
       const thumbnailUrl = frameSource
@@ -276,6 +285,7 @@ export class SORTTracker {
         thumbnailUrl,
         startMs,
         endMs,
+        samples: sortedSamples,
         trajectory,
         selected: false, // Default to unselected: auditor explicitly opts in
         type: defaultType,
@@ -295,12 +305,16 @@ export class SORTTracker {
 
 /**
  * Downsamples dense frame-by-frame samples into an optimized keyframe sequence.
- * Retains beginning, end, and intermediate samples where movement occurs.
+ * Enforces strict minIntervalMs ceilings to prevent 30+ keyframe/sec explosion.
  *
  * @param samples - Chronologically ordered track samples.
+ * @param density - Keyframe density profile ('sparse', 'balanced', 'dense').
  * @returns Clean RedactionKeyframe sequence.
  */
-export function downsampleKeyframes(samples: TrackSample[]): RedactionKeyframe[] {
+export function downsampleKeyframes(
+  samples: TrackSample[],
+  density: KeyframeDensity = 'balanced'
+): RedactionKeyframe[] {
   if (samples.length === 0) return [];
   const first = samples[0];
   const last = samples[samples.length - 1];
@@ -310,6 +324,7 @@ export function downsampleKeyframes(samples: TrackSample[]): RedactionKeyframe[]
     return samples.map((s) => ({ timeMs: s.timeMs, bbox: s.bbox }));
   }
 
+  const profile = KEYFRAME_DENSITY_PROFILES[density] || KEYFRAME_DENSITY_PROFILES.balanced;
   const keyframes: RedactionKeyframe[] = [{ timeMs: first.timeMs, bbox: first.bbox }];
   let lastCommittedBBox = first.bbox;
   let lastCommittedTime = first.timeMs;
@@ -318,14 +333,20 @@ export function downsampleKeyframes(samples: TrackSample[]): RedactionKeyframe[]
     const s = samples[i];
     if (!s) continue;
     const timeDelta = s.timeMs - lastCommittedTime;
+
+    // Strict ceiling clamp: never commit keyframe if minIntervalMs has not elapsed
+    if (timeDelta < profile.minIntervalMs) {
+      continue;
+    }
+
     const dx = Math.abs(s.bbox[0] - lastCommittedBBox[0]);
     const dy = Math.abs(s.bbox[1] - lastCommittedBBox[1]);
     const dw = Math.abs(s.bbox[2] - lastCommittedBBox[2]);
     const dh = Math.abs(s.bbox[3] - lastCommittedBBox[3]);
     const maxCoordDelta = Math.max(dx, dy, dw, dh);
 
-    // Commit keyframe if moved significantly (> 1.5% frame) or elapsed > 400ms
-    if (maxCoordDelta > 0.015 || timeDelta >= 400) {
+    // Commit keyframe if moved beyond tolerance or reached maxIntervalMs heartbeat
+    if (maxCoordDelta >= profile.minMovementDelta || timeDelta >= profile.maxIntervalMs) {
       keyframes.push({ timeMs: s.timeMs, bbox: s.bbox });
       lastCommittedBBox = s.bbox;
       lastCommittedTime = s.timeMs;

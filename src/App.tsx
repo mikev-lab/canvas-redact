@@ -21,7 +21,11 @@ import { Timeline } from './components/Timeline';
 import { AnnotationSidebar } from './components/AnnotationSidebar';
 import { ExportModal } from './components/ExportModal';
 import { ShortcutsModal } from './components/ShortcutsModal';
-import { AutoRedactModal } from './components/AutoRedactModal';
+
+// Lazily load AI Detection modal so zero heavy AI UI/model assets appear on initial load
+const AutoRedactModal = React.lazy(() =>
+  import('./components/AutoRedactModal').then((m) => ({ default: m.AutoRedactModal }))
+);
 
 export default function App(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -437,30 +441,36 @@ export default function App(): React.ReactElement {
         onClose={() => setIsShortcutsOpen(false)}
       />
 
-      {/* AI Face Detection & Subject Gallery Modal */}
-      <AutoRedactModal
-        isOpen={autoDetect.isOpen}
-        onClose={autoDetect.closeModal}
-        status={autoDetect.status}
-        progressPercent={autoDetect.progressPercent}
-        currentScanMs={autoDetect.currentScanMs}
-        durationMs={playback.durationMs}
-        fps={playback.fps}
-        detectedSubjects={autoDetect.detectedSubjects}
-        selectedCount={autoDetect.selectedCount}
-        markAiAssisted={autoDetect.markAiAssisted}
-        hardwareAcceleration={autoDetect.hardwareAcceleration}
-        reviewerId={reviewerId}
-        onStartScan={autoDetect.startScan}
-        onCancelScan={autoDetect.cancelScan}
-        onToggleSelection={autoDetect.toggleSubjectSelection}
-        onUpdateTreatment={autoDetect.updateSubjectTreatment}
-        onUpdateLabel={autoDetect.updateSubjectLabel}
-        onSelectAll={autoDetect.selectAllSubjects}
-        onDeselectAll={autoDetect.deselectAllSubjects}
-        onSetMarkAiAssisted={autoDetect.setMarkAiAssisted}
-        onApply={autoDetect.applySelectedRedactions}
-      />
+      {/* AI Face Detection & Subject Gallery Modal (Lazy Loaded) */}
+      <React.Suspense fallback={null}>
+        {autoDetect.isOpen && (
+          <AutoRedactModal
+            isOpen={autoDetect.isOpen}
+            onClose={autoDetect.closeModal}
+            status={autoDetect.status}
+            progressPercent={autoDetect.progressPercent}
+            currentScanMs={autoDetect.currentScanMs}
+            durationMs={playback.durationMs}
+            fps={playback.fps}
+            detectedSubjects={autoDetect.detectedSubjects}
+            selectedCount={autoDetect.selectedCount}
+            markAiAssisted={autoDetect.markAiAssisted}
+            hardwareAcceleration={autoDetect.hardwareAcceleration}
+            reviewerId={reviewerId}
+            keyframeDensity={autoDetect.keyframeDensity}
+            onSetKeyframeDensity={autoDetect.setKeyframeDensity}
+            onStartScan={autoDetect.startScan}
+            onCancelScan={autoDetect.cancelScan}
+            onToggleSelection={autoDetect.toggleSubjectSelection}
+            onUpdateTreatment={autoDetect.updateSubjectTreatment}
+            onUpdateLabel={autoDetect.updateSubjectLabel}
+            onSelectAll={autoDetect.selectAllSubjects}
+            onDeselectAll={autoDetect.deselectAllSubjects}
+            onSetMarkAiAssisted={autoDetect.setMarkAiAssisted}
+            onApply={autoDetect.applySelectedRedactions}
+          />
+        )}
+      </React.Suspense>
     </div>
   );
 }

@@ -236,6 +236,19 @@ $$
    where $\mathbf{a}$ represents the candidate face embedding vector and $\mathbf{b}$ represents the target enrolled embedding vector.
 5. **Timeline Interval Creation:** Matched trajectories are synthesized into standard `RedactionBox` entries with validity windows $[startMs, endMs]$.
 
+### 8.3 Keyframe Downsampling & Timeline Explosion Ceilings
+To prevent dense 30+ keyframe/sec explosions that overwhelm human auditors, detected trajectories are downsampled with configurable density profiles and strict temporal rate ceilings:
+* **Sparse (~1 keyframe/sec):** Minimum interval 800ms between keyframes.
+* **Balanced (~2 keyframes/sec):** Minimum interval 400ms between keyframes (default).
+* **Dense (~4 keyframes/sec):** Minimum interval 200ms between keyframes.
+* **Ceiling Guarantee:** Keyframe emissions strictly respect `minIntervalMs`, guaranteeing that high-frequency motion never crowds the timeline or complicates manual inspection.
+
+### 8.4 Dynamic Code-Splitting & Lazy Loading Architecture
+To maintain instantaneous sub-second initial load times and prevent large 50MB+ bundle lumps:
+* The Subject Gallery review modal is code-split via `React.lazy()` with `<React.Suspense fallback={null}>`.
+* The face detector and multi-object tracker are loaded asynchronously via dynamic `import()` within the scanning workflow.
+* Users engaging in manual scrubbing or annotation incur zero network or memory overhead for computer vision modules until launching an auto-redaction scan.
+
 ---
 
 ## 9. Multi-Rate Frame Ingestion Architecture (24, 25, 30, 50, 60 FPS & Low-FPS Media)

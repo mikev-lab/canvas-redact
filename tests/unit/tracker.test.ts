@@ -160,4 +160,47 @@ describe('downsampleKeyframes', () => {
     expect(keyframes[0]!.timeMs).toBe(0);
     expect(keyframes[1]!.timeMs).toBe(500);
   });
+
+  it('strictly limits keyframe generation for 30fps dense motion under balanced profile', () => {
+    // Simulate 30 frames in 1000ms with continuous motion
+    const denseSamples = Array.from({ length: 30 }, (_, i) => ({
+      timeMs: Math.round(i * 33.33),
+      bbox: [0.1 + i * 0.01, 0.1 + i * 0.01, 0.2, 0.2] as NormalizedBBoxTuple,
+      confidence: 0.95,
+    }));
+
+    const keyframes = downsampleKeyframes(denseSamples, 'balanced');
+    // Without rate limiting, 30 frames would produce 30 keyframes.
+    // With balanced profile (minIntervalMs: 400), at most ~3-4 keyframes can be emitted across 1000ms.
+    expect(keyframes.length).toBeLessThanOrEqual(5);
+    expect(keyframes.length).toBeGreaterThanOrEqual(2);
+
+    // Verify minIntervalMs: consecutive intermediate keyframes must be at least 400ms apart
+    for (let i = 1; i < keyframes.length - 1; i++) {
+      const delta = keyframes[i]!.timeMs - keyframes[i - 1]!.timeMs;
+      expect(delta).toBeGreaterThanOrEqual(400);
+    }
+  });
+
+  it('produces fewer keyframes under sparse profile and more under dense profile', () => {
+    // 3 seconds of continuous motion (90 frames)
+    const denseSamples = Array.from({ length: 90 }, (_, i) => ({
+      timeMs: Math.round(i * 33.33),
+      bbox: [0.1 + i * 0.005, 0.1, 0.2, 0.2] as NormalizedBBoxTuple,
+      confidence: 0.95,
+    }));
+
+    const sparseKfs = downsampleKeyframes(denseSamples, 'sparse');
+    const balancedKfs = downsampleKeyframes(denseSamples, 'balanced');
+    const denseKfs = downsampleKeyframes(denseSamples, 'dense');
+
+    // Sparse must be <= Balanced <= Dense
+    expect(sparseKfs.length).toBeLessThanOrEqual(balancedKfs.length);
+    expect(balancedKfs.length).toBeLessThanOrEqual(denseKfs.length);
+
+    // None should ever explode to 90 keyframes!
+    expect(sparseKfs.length).toBeLessThanOrEqual(6);
+    expect(balancedKfs.length).toBeLessThanOrEqual(10);
+    expect(denseKfs.length).toBeLessThanOrEqual(18);
+  });
 });

@@ -5,9 +5,9 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { RedactionBox, RedactionType } from '../types';
-import { createDefaultDetector, IDetector } from '../ai/detector';
-import { SORTTracker } from '../ai/tracker';
-import { TrackedSubject } from '../ai/types';
+import type { IDetector } from '../ai/detector';
+import { SORTTracker, downsampleKeyframes } from '../ai/tracker';
+import { TrackedSubject, KeyframeDensity } from '../ai/types';
 
 export type AutoDetectionStatus = 'idle' | 'scanning' | 'reviewing' | 'applying';
 
@@ -36,6 +36,8 @@ export interface UseAutoDetectionReturn {
   selectedCount: number;
   markAiAssisted: boolean;
   hardwareAcceleration: 'webgpu' | 'cpu' | 'simulated';
+  keyframeDensity: KeyframeDensity;
+  setKeyframeDensity: (density: KeyframeDensity) => void;
   openModal: () => void;
   closeModal: () => void;
   startScan: (stepFrames?: number) => Promise<void>;
@@ -66,12 +68,14 @@ export function useAutoDetection({
   const [progressPercent, setProgressPercent] = useState(0);
   const [currentScanMs, setCurrentScanMs] = useState(0);
   const [detectedSubjects, setDetectedSubjects] = useState<TrackedSubject[]>([]);
+  const [keyframeDensity, setKeyframeDensityState] = useState<KeyframeDensity>('balanced');
   const [markAiAssisted, setMarkAiAssisted] = useState(true);
   const [hardwareAcceleration, setHardwareAcceleration] = useState<'webgpu' | 'cpu' | 'simulated'>('webgpu');
 
   const isCancelledRef = useRef(false);
-  const detectorRef = useRef<IDetector>(customDetector || createDefaultDetector());
-  const trackerRef = useRef<SORTTracker>(new SORTTracker(8, 2, 0.25));
+  // Lazily initialized detector and tracker to prevent large lumps on startup
+  const detectorRef = useRef<IDetector | null>(customDetector || null);
+  const trackerRef = useRef<SORTTracker | null>(null);
 
   // Detect WebGPU / Apple Neural Engine capability on mount
   useEffect(() => {
@@ -152,6 +156,27 @@ export function useAutoDetection({
   }, []);
 
   /**
+   * Dynamically re-downsamples all confirmed subject trajectories when the auditor
+   * adjusts the keyframe density profile without re-scanning video frames.
+   */
+  const setKeyframeDensity = useCallback((density: KeyframeDensity) => {
+    setKeyframeDensityState(density);
+    setDetectedSubjects((prev) =>
+      prev.map((s) => {
+        if (!s.samples || s.samples.length === 0) return s;
+        const newTrajectory = downsampleKeyframes(s.samples, density);
+        const filteredTrajectory = newTrajectory.filter(
+          (k) => k.timeMs >= s.startMs && k.timeMs <= s.endMs
+        );
+        return {
+          ...s,
+          trajectory: filteredTrajectory,
+        };
+      })
+    );
+  }, []);
+
+  /**
    * Runs the automated video frame extraction, inference, and tracking loop.
    */
   const startScan = useCallback(
@@ -162,6 +187,15 @@ export function useAutoDetection({
       setStatus('scanning');
       setProgressPercent(0);
       setCurrentScanMs(0);
+
+      // Lazily instantiate detector and tracker to prevent bundle bloating
+      if (!detectorRef.current) {
+        const { createDefaultDetector } = await import('../ai/detector');
+        detectorRef.current = createDefaultDetector();
+      }
+      if (!trackerRef.current) {
+        trackerRef.current = new SORTTracker(8, 2, 0.25);
+      }
 
       const video = videoRef.current;
       const frameDurationMs = 1000 / (fps || 30);
@@ -238,12 +272,13 @@ export function useAutoDetection({
           scanTimeMs += stepMs;
         }
 
-        // Finalize scan: collect confirmed subjects with cropped thumbnails
+        // Finalize scan: collect confirmed subjects with cropped thumbnails and rate-limited keyframes
         const subjects = trackerRef.current.getConfirmedSubjects(
           offscreenCanvas,
           videoWidth,
           videoHeight,
-          'blur'
+          'blur',
+          keyframeDensity
         );
 
         setDetectedSubjects(subjects);
@@ -254,7 +289,7 @@ export function useAutoDetection({
         setStatus('idle');
       }
     },
-    [durationMs, fps, isReady, videoRef]
+    [durationMs, fps, isReady, keyframeDensity, videoRef]
   );
 
   /**
@@ -304,6 +339,8 @@ export function useAutoDetection({
     selectedCount,
     markAiAssisted,
     hardwareAcceleration,
+    keyframeDensity,
+    setKeyframeDensity,
     openModal,
     closeModal,
     startScan,

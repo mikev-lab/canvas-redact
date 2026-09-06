@@ -21,7 +21,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { RedactionType } from '../types';
-import { TrackedSubject } from '../ai/types';
+import { TrackedSubject, KeyframeDensity } from '../ai/types';
 import { msToTimecode } from '../utils/timecode';
 
 export interface AutoRedactModalProps {
@@ -36,7 +36,9 @@ export interface AutoRedactModalProps {
   selectedCount: number;
   markAiAssisted: boolean;
   hardwareAcceleration: 'webgpu' | 'cpu' | 'simulated';
+  keyframeDensity?: KeyframeDensity;
   reviewerId?: string;
+  onSetKeyframeDensity?: (density: KeyframeDensity) => void;
   onStartScan: (stepFrames?: number) => void;
   onCancelScan: () => void;
   onToggleSelection: (id: string) => void;
@@ -60,7 +62,9 @@ export const AutoRedactModal: React.FC<AutoRedactModalProps> = ({
   selectedCount,
   markAiAssisted,
   hardwareAcceleration,
+  keyframeDensity = 'balanced',
   reviewerId = '',
+  onSetKeyframeDensity,
   onStartScan,
   onCancelScan,
   onToggleSelection,
@@ -160,42 +164,86 @@ export const AutoRedactModal: React.FC<AutoRedactModalProps> = ({
                 </p>
               </div>
 
-              {/* Sampling density selector */}
-              <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-lg p-2 text-xs">
-                <span className="text-zinc-400 font-medium pl-1">Sampling Rate:</span>
-                <button
-                  type="button"
-                  onClick={() => setScanStep(3)}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    scanStep === 3
-                      ? 'bg-purple-600 text-white font-medium'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  Fine (3f)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScanStep(5)}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    scanStep === 5
-                      ? 'bg-purple-600 text-white font-medium'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  Standard (5f)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScanStep(10)}
-                  className={`px-2.5 py-1 rounded transition-colors ${
-                    scanStep === 10
-                      ? 'bg-purple-600 text-white font-medium'
-                      : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-                >
-                  Fast (10f)
-                </button>
+              {/* Sampling rate and Keyframe density selectors */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-lg p-2.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-400 font-medium pl-1">Sampling:</span>
+                  <button
+                    type="button"
+                    onClick={() => setScanStep(3)}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      scanStep === 3
+                        ? 'bg-purple-600 text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Fine (3f)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScanStep(5)}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      scanStep === 5
+                        ? 'bg-purple-600 text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Standard (5f)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScanStep(10)}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      scanStep === 10
+                        ? 'bg-purple-600 text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    Fast (10f)
+                  </button>
+                </div>
+
+                <div className="hidden sm:block w-px h-4 bg-zinc-800" />
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-400 font-medium">Keyframes:</span>
+                  <button
+                    type="button"
+                    onClick={() => onSetKeyframeDensity?.('sparse')}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      keyframeDensity === 'sparse'
+                        ? 'bg-purple-600 text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="Sparse: ~1 keyframe per second (min 800ms gap)"
+                  >
+                    Sparse (~1/s)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSetKeyframeDensity?.('balanced')}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      keyframeDensity === 'balanced'
+                        ? 'bg-purple-600 text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="Balanced: ~2 keyframes per second (min 400ms gap)"
+                  >
+                    Balanced (~2/s)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSetKeyframeDensity?.('dense')}
+                    className={`px-2 py-1 rounded transition-colors ${
+                      keyframeDensity === 'dense'
+                        ? 'bg-purple-600 text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="Dense: ~4 keyframes per second (min 200ms gap)"
+                  >
+                    Dense (~4/s)
+                  </button>
+                </div>
               </div>
 
               <button
@@ -292,6 +340,53 @@ export const AutoRedactModal: React.FC<AutoRedactModalProps> = ({
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Re-Scan</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Trajectory Keyframe Density Selector */}
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-900/60 border border-zinc-800 rounded-lg px-4 py-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3.5 h-3.5 text-purple-400 shrink-0" aria-hidden="true" />
+                  <span className="text-zinc-300 font-medium">Trajectory Keyframe Density:</span>
+                  <span className="text-zinc-500 text-[11px]">(Rate limited to avoid timeline clutter)</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-zinc-950 p-1 rounded-md border border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => onSetKeyframeDensity?.('sparse')}
+                    className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                      keyframeDensity === 'sparse'
+                        ? 'bg-purple-600 text-white font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="Sparse: ~1 keyframe per second (minimum 800ms between keyframes)"
+                  >
+                    Sparse (~1/s)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSetKeyframeDensity?.('balanced')}
+                    className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                      keyframeDensity === 'balanced'
+                        ? 'bg-purple-600 text-white font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="Balanced: ~2 keyframes per second (minimum 400ms between keyframes)"
+                  >
+                    Balanced (~2/s)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSetKeyframeDensity?.('dense')}
+                    className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                      keyframeDensity === 'dense'
+                        ? 'bg-purple-600 text-white font-semibold shadow-sm'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                    title="Dense: ~4 keyframes per second (minimum 200ms between keyframes)"
+                  >
+                    Dense (~4/s)
                   </button>
                 </div>
               </div>

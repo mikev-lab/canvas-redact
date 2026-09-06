@@ -264,9 +264,11 @@ describe('App root component & global forensic keyboard coordinator', () => {
 
     fireEvent.click(autoRedactBtn);
 
-    // Auto-Redact modal should now be visible
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText(/AI FACE DETECTION & SUBJECT GALLERY/i)).toBeInTheDocument();
+    // Auto-Redact modal should now be visible via lazy loading
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByText(/AI FACE DETECTION & SUBJECT GALLERY/i)).toBeInTheDocument();
+    });
 
     // Dismiss with Escape
     fireEvent.keyDown(window, { key: 'Escape' });

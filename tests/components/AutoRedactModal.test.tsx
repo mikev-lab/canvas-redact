@@ -183,4 +183,39 @@ describe('AutoRedactModal Component', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(defaultProps.onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('triggers onSetKeyframeDensity when density buttons are clicked in review state', () => {
+    const onSetKeyframeDensity = vi.fn();
+    render(
+      <AutoRedactModal
+        {...defaultProps}
+        keyframeDensity="balanced"
+        onSetKeyframeDensity={onSetKeyframeDensity}
+      />
+    );
+
+    const sparseBtn = screen.getByRole('button', { name: /Sparse \(~1\/s\)/i });
+    fireEvent.click(sparseBtn);
+    expect(onSetKeyframeDensity).toHaveBeenCalledWith('sparse');
+
+    const denseBtn = screen.getByRole('button', { name: /Dense \(~4\/s\)/i });
+    fireEvent.click(denseBtn);
+    expect(onSetKeyframeDensity).toHaveBeenCalledWith('dense');
+  });
+
+  it('allows customizing keyframe density in idle state prior to scanning', () => {
+    const onSetKeyframeDensity = vi.fn();
+    render(
+      <AutoRedactModal
+        {...defaultProps}
+        status="idle"
+        detectedSubjects={[]}
+        onSetKeyframeDensity={onSetKeyframeDensity}
+      />
+    );
+
+    const sparseBtn = screen.getByRole('button', { name: /Sparse \(~1\/s\)/i });
+    fireEvent.click(sparseBtn);
+    expect(onSetKeyframeDensity).toHaveBeenCalledWith('sparse');
+  });
 });
