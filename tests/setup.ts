@@ -32,6 +32,29 @@ if (typeof window !== 'undefined') {
     global.PointerEvent = MockPointerEvent;
   }
 
+  // Mock HTMLMediaElement methods in JSDOM
+  if (typeof HTMLMediaElement !== 'undefined') {
+    Object.defineProperty(HTMLMediaElement.prototype, 'duration', {
+      configurable: true,
+      get() {
+        return 10;
+      }
+    });
+
+    HTMLMediaElement.prototype.load = vi.fn().mockImplementation(function (this: HTMLMediaElement) {
+      setTimeout(() => {
+        this.dispatchEvent(new Event('loadedmetadata'));
+        this.dispatchEvent(new Event('canplay'));
+      }, 0);
+    });
+
+    HTMLMediaElement.prototype.play = vi.fn().mockImplementation(function () {
+      return Promise.resolve();
+    });
+
+    HTMLMediaElement.prototype.pause = vi.fn();
+  }
+
   // Mock HTMLCanvasElement getContext('2d')
   HTMLCanvasElement.prototype.getContext = vi.fn().mockImplementation((contextId: string) => {
     if (contextId === '2d') {
