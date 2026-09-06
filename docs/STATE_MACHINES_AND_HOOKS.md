@@ -113,22 +113,22 @@ To guarantee smooth reverse shuttle at -1x, -2x, and -4x speeds without freezing
 
 ```mermaid
 sequenceDiagram
-    participant User as Keyboard (J key)
+    participant User as Keyboard J Key
     participant Hook as useVideoPlayback
     participant Video as HTML5 Video Decoder
-    participant Canvas as CanvasOverlay (60 FPS)
+    participant Canvas as CanvasOverlay
 
-    User->>Hook: Press J (shuttleRate = -1x)
-    Hook->>Hook: Track wall-clock target time: t_target(t + dt)
-    alt Decoder Idle: not seeking
-        Hook->>Video: video.currentTime = t_target
+    User->>Hook: Press J to reverse
+    Hook->>Hook: Track wall-clock target time
+    alt Decoder Idle
+        Hook->>Video: video.currentTime = targetTime
         Note over Video: Hardware Decoder locates I-frame and decodes forward
-    else Decoder Busy: video seeking in progress
-        Note over Hook: Accumulate target drift; do not interrupt pending seek
+    else Decoder Busy
+        Note over Hook: Accumulate target drift without interrupting seek
     end
     Video-->>Hook: Native seeked event fired
-    Hook->>Hook: Clear isSeekingRef, sync currentTimeMs
-    Hook-->>Canvas: Trigger immediate renderFrame()
+    Hook->>Hook: Clear isSeekingRef and sync currentTimeMs
+    Hook-->>Canvas: Trigger immediate renderFrame
     opt Drift accumulated during decode
         Hook->>Video: Dispatch next seek immediately
     end
