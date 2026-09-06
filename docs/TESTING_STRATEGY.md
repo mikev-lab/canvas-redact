@@ -9,7 +9,7 @@
 ## 1. Executive Summary
 
 In public safety and forensic evidence review software, bugs or mathematical coordinate drift can result in evidence suppression, privacy disclosure breaches, or courtroom challenges. Consequently, **canvas-redact** operates under a **Zero Untested Code** mandate:
-* **Comprehensive Test Suite:** 19 automated test suites with 162 unit and integration tests executing in under 3 seconds.
+* **Comprehensive Test Suite:** 20 automated test suites with 173 unit and integration tests executing in under 3 seconds.
 * **Strict TypeScript Type-Checking:** `tsc --noEmit` runs with zero diagnostic errors permitted.
 * **Automated CI Gates:** Every push to `main` and every pull request must pass a deterministic continuous integration pipeline running on `ubuntu-latest`.
 
@@ -23,7 +23,7 @@ flowchart TD
         UI1[App.test.tsx: End-to-End User Redaction Flow]
         UI2[AutoRedactModal.test.tsx: AI Subject Review Gallery]
         UI3[PlaybackControls & Timeline.test.tsx: Seeking & In/Out Markers]
-        UI4[AnnotationSidebar & ExportModal.test.tsx: Metadata & Manifests]
+        UI4[AnnotationSidebar, ExportModal & ImportModal.test.tsx: Metadata & Manifests]
     end
 
     subgraph Layer2["Layer 2: React Hook Tests (State & FSM)"]
@@ -62,15 +62,16 @@ flowchart TD
 | `tests/hooks/useVideoPlayback.test.ts`| Hook | 7 tests | ~32 ms | Hardware video clock synchronization, reverse shuttle, monotonic frame steps |
 | `tests/hooks/useCanvasInteraction.test.ts`| Hook | 7 tests | ~31 ms | 4-state FSM transitions, window listener lifecycles, cursor style mapping |
 | `tests/hooks/useAutoDetection.test.ts`| Hook | 4 tests | ~11 ms | Scanning state machine, cancelation, trajectory synthesis |
-| `tests/components/App.test.tsx` | RTL | 9 tests | ~970 ms | Global keyboard hotkey orchestration (`Space`, `T`, `J/K/L`, `[`/`]`) |
+| `tests/components/App.test.tsx` | RTL | 10 tests | ~970 ms | Global keyboard hotkey orchestration (`Space`, `T`, `J/K/L`, `[`/`]`) |
 | `tests/components/AutoRedactModal.test.tsx`| RTL | 12 tests | ~690 ms | Subject gallery review, selective checkbox toggling, treatment selectors |
 | `tests/components/Timeline.test.tsx` | RTL | 6 tests | ~140 ms | Playhead dragging, in/out bracket dragging, keyframe diamonds |
 | `tests/components/PlaybackControls.test.tsx`| RTL | 7 tests | ~260 ms | Play/pause toggles, shuttle speed indicators, jump frame selector |
 | `tests/components/Header.test.tsx` | RTL | 9 tests | ~260 ms | Local file drag-and-drop ingestion, Reviewer ID badge editing |
 | `tests/components/AnnotationSidebar.test.tsx`| RTL | 4 tests | ~260 ms | Redaction metadata inspector, label editing, treatment switching |
-| `tests/components/ExportModal.test.tsx`| RTL | 4 tests | ~70 ms | Evidence JSON generation, clipboard copying, file download |
+| `tests/components/ExportModal.test.tsx`| RTL | 5 tests | ~70 ms | Evidence JSON generation, clipboard copying, file download, import switch |
+| `tests/components/ImportModal.test.tsx`| RTL | 9 tests | ~350 ms | Ingestion tabs, JSON parsing, live preview breakdown, conflict resolution |
 
-**Total:** 19 test suites, 162 automated tests passing with zero warnings or failures.
+**Total:** 20 test suites, 173 automated tests passing with zero warnings or failures.
 
 ---
 

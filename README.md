@@ -10,7 +10,7 @@
 <br/>
 
 [![CI](https://img.shields.io/github/actions/workflow/status/mikev-lab/canvas-redact/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/mikev-lab/canvas-redact/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/Tests-162%20Passed-10b981?logo=vitest&logoColor=white)](docs/TESTING_STRATEGY.md)
+[![Tests](https://img.shields.io/badge/Tests-173%20Passed-10b981?logo=vitest&logoColor=white)](docs/TESTING_STRATEGY.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Mode-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=black)](https://react.dev/)
 [![Graphics](https://img.shields.io/badge/Graphics-HTML5%20Canvas%2060%20FPS-8b5cf6?logo=html5&logoColor=white)](docs/CANVAS_ENGINE.md)
@@ -153,7 +153,7 @@ To provide full transparency into the system architecture, mathematical formulat
 | [Client-Side AI & Tracking Engine](docs/AI_TRACKING_ENGINE.md) | Computer Vision & Machine Learning | Pure TypeScript 2D Kalman filter, SORT tracking, zero-lump lazy loading |
 | [Forensic Evidential Standards](docs/FORENSIC_STANDARDS.md) | Evidence Integrity & Accessibility | Non-destructive vectors, Reviewer ID attribution, WCAG 2.1 Level AAA compliance |
 | [Data Models & Export Schemas](docs/DATA_MODELS_AND_SCHEMAS.md) | Domain Models & Machine Learning Data | Schema `v1.0.0`, XSS sanitization, integer millisecond math, YOLO/COCO conversion |
-| [Testing Strategy & Test Pyramid](docs/TESTING_STRATEGY.md) | Software Quality & Verification Gates | 3-layer test pyramid, 19 suites / 162 automated tests, CI pipeline automation |
+| [Testing Strategy & Test Pyramid](docs/TESTING_STRATEGY.md) | Software Quality & Verification Gates | 3-layer test pyramid, 20 suites / 173 automated tests, CI pipeline automation |
 
 ---
 
