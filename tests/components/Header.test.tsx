@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { Header } from '../../src/components/Header';
 
 describe('Header component', () => {
-  it('renders application branding and air-gapped security badge', () => {
+  it('renders application branding and version badge', () => {
     render(
       <Header
         onLoadSample={vi.fn()}
@@ -18,7 +18,7 @@ describe('Header component', () => {
     );
 
     expect(screen.getByText('CANVAS-REDACT')).toBeInTheDocument();
-    expect(screen.getByText('100% Client-Side Air-Gapped')).toBeInTheDocument();
+    expect(screen.getByText('v0.1.0')).toBeInTheDocument();
   });
 
   it('triggers sample video generation on button click', () => {
@@ -36,7 +36,7 @@ describe('Header component', () => {
       />
     );
 
-    const sampleBtn = screen.getByRole('button', { name: /CCTV demo/i });
+    const sampleBtn = screen.getByRole('button', { name: /demo/i });
     fireEvent.click(sampleBtn);
     expect(onLoadSample).toHaveBeenCalled();
   });

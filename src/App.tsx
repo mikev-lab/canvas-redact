@@ -106,14 +106,6 @@ export default function App(): React.ReactElement {
     }
   }, [redactionsState]);
 
-  // Auto-load procedural synthetic demo video on initial mount
-  const hasAutoLoadedRef = useRef(false);
-  useEffect(() => {
-    if (!hasAutoLoadedRef.current) {
-      hasAutoLoadedRef.current = true;
-      void handleLoadSample();
-    }
-  }, [handleLoadSample]);
 
   // Global Forensic Keyboard Shortcut Coordinator
   useEffect(() => {
@@ -281,6 +273,7 @@ export default function App(): React.ReactElement {
               videoHeight={playback.videoHeight}
               isReady={playback.isReady}
               onLoadSample={handleLoadSample}
+              onFileUpload={handleFileUpload}
               activeRedactions={redactionsState.activeRedactions}
               selectedId={redactionsState.selectedId}
               currentDragRect={interaction.currentDragRect}

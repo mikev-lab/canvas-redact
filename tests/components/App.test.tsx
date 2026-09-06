@@ -7,18 +7,15 @@ describe('App root component & global forensic keyboard coordinator', () => {
     vi.clearAllMocks();
   });
 
-  it('renders application layout and auto-loads procedural demo evidence', async () => {
+  it('renders application layout with initial clean evidence dropzone', async () => {
     render(<App />);
 
     // Header Branding
     expect(screen.getByText('CANVAS-REDACT')).toBeInTheDocument();
-    expect(screen.getByText('100% Client-Side Air-Gapped')).toBeInTheDocument();
+    expect(screen.getByText('v0.1.0')).toBeInTheDocument();
 
-    // Auto-loaded demo annotations
-    await waitFor(() => {
-      expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Vehicle Plate').length).toBeGreaterThan(0);
-    });
+    // Dropzone is displayed
+    expect(screen.getByText('Drop Evidence Video Here')).toBeInTheDocument();
 
     // Verify timecode HUD is rendered
     expect(screen.getAllByText(/00:00:00:00/).length).toBeGreaterThan(0);
@@ -26,6 +23,9 @@ describe('App root component & global forensic keyboard coordinator', () => {
 
   it('opens and closes export modal via action button and escape key', async () => {
     render(<App />);
+
+    const demoBtn = screen.getByRole('button', { name: /demo clip/i });
+    fireEvent.click(demoBtn);
 
     await waitFor(() => {
       expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
@@ -46,6 +46,9 @@ describe('App root component & global forensic keyboard coordinator', () => {
   it('toggles forensic shortcuts guide via ? key', async () => {
     render(<App />);
 
+    const demoBtn = screen.getByRole('button', { name: /demo clip/i });
+    fireEvent.click(demoBtn);
+
     await waitFor(() => {
       expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
     });
@@ -60,6 +63,9 @@ describe('App root component & global forensic keyboard coordinator', () => {
 
   it('bypasses global keyboard shortcuts when user is focused inside a text input', async () => {
     render(<App />);
+
+    const demoBtn = screen.getByRole('button', { name: /demo clip/i });
+    fireEvent.click(demoBtn);
 
     await waitFor(() => {
       expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
@@ -83,10 +89,6 @@ describe('App root component & global forensic keyboard coordinator', () => {
 
   it('imports evidence JSON manifest and updates state', async () => {
     render(<App />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
-    });
 
     const manifestInput = screen.getByLabelText(/Upload evidence review JSON manifest file/i) as HTMLInputElement;
 

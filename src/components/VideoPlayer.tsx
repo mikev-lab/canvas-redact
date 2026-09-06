@@ -3,9 +3,9 @@
  * the base HTML5 <video> element and the interactive CanvasOverlay.
  */
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { CanvasOverlay, CanvasOverlayProps } from './CanvasOverlay';
-import { Film } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 export interface VideoPlayerProps extends Omit<CanvasOverlayProps, 'videoDimensions'> {
   /** Intrinsic pixel width of raw video */
@@ -16,6 +16,8 @@ export interface VideoPlayerProps extends Omit<CanvasOverlayProps, 'videoDimensi
   isReady: boolean;
   /** Trigger to load sample CCTV video when empty */
   onLoadSample: () => void;
+  /** Optional file upload callback for drag-and-drop or file selection */
+  onFileUpload?: (file: File) => void;
 }
 
 /**
@@ -28,12 +30,38 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoHeight,
   isReady,
   onLoadSample,
+  onFileUpload,
   ...canvasProps
 }) => {
+  const dropInputRef = useRef<HTMLInputElement>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
   // Calculate aspect ratio string (e.g. "16 / 9") or fallback to standard 16:9
   const aspectRatioStyle = videoWidth > 0 && videoHeight > 0
     ? { aspectRatio: `${videoWidth} / ${videoHeight}` }
     : { aspectRatio: '16 / 9' };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && onFileUpload) {
+      onFileUpload(file);
+    }
+  };
 
   return (
     <div
@@ -63,26 +91,71 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         />
       )}
 
-      {/* Empty State Overlay if no media loaded */}
+      {/* Empty State Drag-and-Drop Evidence Workspace */}
       {!isReady && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-zinc-950/90 z-20">
-          <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4 text-zinc-500">
-            <Film className="w-7 h-7" aria-hidden="true" />
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => dropInputRef.current?.click()}
+          className={`absolute inset-0 flex flex-col items-center justify-center p-8 text-center cursor-pointer transition-colors z-20 ${
+            isDraggingOver
+              ? 'bg-blue-950/40 border-2 border-dashed border-blue-500'
+              : 'bg-zinc-950/90 border-2 border-dashed border-zinc-800 hover:border-zinc-700'
+          }`}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              dropInputRef.current?.click();
+            }
+          }}
+          aria-label="Upload evidence video file by dragging or clicking"
+        >
+          <input
+            ref={dropInputRef}
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file && onFileUpload) {
+                onFileUpload(file);
+              }
+              e.target.value = '';
+            }}
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden="true"
+          />
+
+          <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mb-4 text-blue-400">
+            <Upload className="w-6 h-6" aria-hidden="true" />
           </div>
-          <h2 className="text-lg font-semibold text-white mb-2">
-            No Evidence Media Loaded
+          <h2 className="text-base font-semibold text-white mb-1">
+            Drop Evidence Video Here
           </h2>
-          <p className="text-sm text-zinc-400 max-w-md mb-6">
-            Load an MP4/WebM video file from your local workstation or generate a procedural synthetic CCTV demo clip to begin redaction.
+          <p className="text-xs text-zinc-400 max-w-sm mb-4">
+            Drag and drop an MP4, WebM, MOV, or MKV file, or click to browse.
           </p>
-          <button
-            type="button"
-            onClick={onLoadSample}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-            aria-label="Generate and load procedural synthetic CCTV demo evidence"
-          >
-            Load CCTV Evidence Demo
-          </button>
+
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm">
+              <Upload className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Select File</span>
+            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onLoadSample();
+              }}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4 decoration-zinc-700 hover:decoration-zinc-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Generate and load procedural synthetic CCTV demo evidence"
+            >
+              or load synthetic test clip
+            </button>
+          </div>
         </div>
       )}
     </div>

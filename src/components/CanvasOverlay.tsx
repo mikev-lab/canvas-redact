@@ -7,7 +7,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { RedactionBox, NormalizedBBoxTuple, ResizeHandle } from '../types';
 import {
-  normalizedToScreen,
   getHandlePositions
 } from '../utils/coordinates';
 import {
@@ -111,10 +110,9 @@ export const CanvasOverlay: React.FC<CanvasOverlayProps> = ({
       }
 
       const [normX, normY, normW, normH] = redaction.bbox;
-      const screenCoords = normalizedToScreen(normX, normY, rect);
       const renderRect = {
-        x: screenCoords.clientX,
-        y: screenCoords.clientY,
+        x: normX * displayWidth,
+        y: normY * displayHeight,
         width: normW * displayWidth,
         height: normH * displayHeight
       };
@@ -141,10 +139,9 @@ export const CanvasOverlay: React.FC<CanvasOverlayProps> = ({
     // 2. Render real-time active gesture preview (drawing / moving / resizing)
     if (currentDragRect) {
       const [dragX, dragY, dragW, dragH] = currentDragRect;
-      const screenCoords = normalizedToScreen(dragX, dragY, rect);
       const previewRect = {
-        x: screenCoords.clientX,
-        y: screenCoords.clientY,
+        x: dragX * displayWidth,
+        y: dragY * displayHeight,
         width: dragW * displayWidth,
         height: dragH * displayHeight
       };

@@ -88,15 +88,6 @@ export const Header: React.FC<HeaderProps> = ({
             </p>
           </div>
         </div>
-
-        {/* Air-Gapped Security Guarantee Pill */}
-        <div
-          className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/80 text-emerald-300 text-xs font-medium"
-          title="Zero network transmissions: Media files never leave this device."
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
-          <span>100% Client-Side Air-Gapped</span>
-        </div>
       </div>
 
       {/* Action Toolbar */}
@@ -125,26 +116,27 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label="Upload evidence review JSON manifest file"
         />
 
-        {/* Load CCTV Synthetic Demo button */}
-        <button
-          type="button"
-          onClick={onLoadSample}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          aria-label="Load procedural synthetic CCTV demo evidence clip"
-        >
-          <Video className="w-3.5 h-3.5 text-blue-400" aria-hidden="true" />
-          <span>Load CCTV Demo</span>
-        </button>
-
-        {/* Open Local Video File button */}
+        {/* Open Local Video File button (Primary Action) */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
           aria-label="Open local evidence media file from disk"
         >
-          <Upload className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
-          <span>Open File</span>
+          <Upload className="w-3.5 h-3.5 text-blue-100" aria-hidden="true" />
+          <span>Open Video</span>
+        </button>
+
+        {/* Compact Load CCTV Synthetic Demo button */}
+        <button
+          type="button"
+          onClick={onLoadSample}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-zinc-900/80 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          aria-label="Load synthetic demo clip"
+          title="Load procedural synthetic CCTV clip for testing"
+        >
+          <Video className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
+          <span>Demo Clip</span>
         </button>
 
         {/* Import Evidence JSON Manifest button */}
