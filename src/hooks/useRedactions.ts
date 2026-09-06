@@ -152,11 +152,20 @@ export function useRedactions(
           const clampedY = Math.max(0, Math.min(1, normY));
           const clampedW = Math.max(0, Math.min(1 - clampedX, normW));
           const clampedH = Math.max(0, Math.min(1 - clampedY, normH));
-          nextBbox = [clampedX, clampedY, clampedW, clampedH];
+          const clampedBbox: NormalizedBBoxTuple = [clampedX, clampedY, clampedW, clampedH];
 
-          // If the box has active keyframes, update the keyframe at the current timestamp
-          if (nextKeyframes && nextKeyframes.length > 0) {
-            nextKeyframes = upsertKeyframe(nextKeyframes, currentTimeMs, nextBbox);
+          // If the box already has keyframes OR we are moving it at a timestamp different from startMs
+          if ((nextKeyframes && nextKeyframes.length > 0) || currentTimeMs > r.startMs) {
+            const baseKeyframes = nextKeyframes && nextKeyframes.length > 0
+              ? nextKeyframes
+              : [{ timeMs: r.startMs, bbox: r.bbox }];
+
+            nextKeyframes = upsertKeyframe(baseKeyframes, currentTimeMs, clampedBbox);
+            // Automatically expand temporal validity window if dragged outside initial bounds
+            nextStartMs = Math.min(nextStartMs, currentTimeMs);
+            nextEndMs = Math.max(nextEndMs, currentTimeMs);
+          } else {
+            nextBbox = clampedBbox;
           }
         }
 
@@ -218,14 +227,20 @@ export function useRedactions(
         if (r.id !== id) return r;
         let existingKeyframes = r.keyframes;
         if (!existingKeyframes || existingKeyframes.length === 0) {
-          existingKeyframes = timeMs > r.startMs
-            ? [{ timeMs: r.startMs, bbox: r.bbox }]
-            : [];
+          // Anchor initial frame at startMs to preserve origin position
+          existingKeyframes = [{ timeMs: r.startMs, bbox: r.bbox }];
         }
         const updatedKeyframes = upsertKeyframe(existingKeyframes, timeMs, bbox);
+
+        // Automatically expand the temporal validity window [startMs, endMs] to encompass the new keyframe
+        const nextStartMs = Math.min(r.startMs, timeMs);
+        const nextEndMs = Math.max(r.endMs, timeMs);
+
         return {
           ...r,
-          bbox,
+          startMs: nextStartMs,
+          endMs: nextEndMs,
+          bbox: timeMs <= r.startMs ? bbox : r.bbox,
           keyframes: updatedKeyframes
         };
       })

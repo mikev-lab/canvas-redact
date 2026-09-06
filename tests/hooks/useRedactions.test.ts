@@ -288,4 +288,73 @@ describe('useRedactions hook', () => {
     });
     expect(result.current.redactions.find(r => r.id === id)?.keyframes).toBeUndefined();
   });
+
+  it('automatically expands validity bounds [startMs, endMs] when setting keyframes beyond current span', () => {
+    const { result } = renderHook(() => useRedactions(0));
+
+    let id = '';
+    act(() => {
+      id = result.current.addRedaction({
+        label: 'Tracking Target',
+        type: 'blur',
+        startMs: 1000,
+        endMs: 3000,
+        bbox: [0.1, 0.1, 0.2, 0.2]
+      });
+    });
+
+    // Record keyframe at t = 5000 (past endMs of 3000)
+    act(() => {
+      result.current.setKeyframe(id, 5000, [0.4, 0.4, 0.2, 0.2]);
+    });
+
+    let box = result.current.redactions.find(r => r.id === id);
+    expect(box?.startMs).toBe(1000);
+    expect(box?.endMs).toBe(5000); // Auto-extended to encompass keyframe!
+
+    // Record keyframe at t = 200 (before startMs of 1000)
+    act(() => {
+      result.current.setKeyframe(id, 200, [0.05, 0.05, 0.2, 0.2]);
+    });
+
+    box = result.current.redactions.find(r => r.id === id);
+    expect(box?.startMs).toBe(200); // Auto-extended backward to encompass keyframe!
+    expect(box?.endMs).toBe(5000);
+  });
+
+  it('preserves initial anchor keyframe when moving box at a later timestamp', () => {
+    let currentTime = 0;
+    const { result, rerender } = renderHook(() => useRedactions(currentTime));
+
+    let id = '';
+    act(() => {
+      id = result.current.addRedaction({
+        label: 'Moving Subject',
+        type: 'blur',
+        startMs: 0,
+        endMs: 3000,
+        bbox: [0.1, 0.1, 0.2, 0.2]
+      });
+    });
+
+    // Move playhead forward to t = 1000
+    currentTime = 1000;
+    rerender();
+
+    // User drags/moves the box at t = 1000
+    act(() => {
+      result.current.updateRedaction(id, {
+        bbox: [0.3, 0.3, 0.2, 0.2]
+      });
+    });
+
+    const box = result.current.redactions.find(r => r.id === id);
+    // Should now contain 2 keyframes: initial anchor at 0ms and moved position at 1000ms
+    expect(box?.keyframes).toBeDefined();
+    expect(box?.keyframes).toHaveLength(2);
+    expect(box?.keyframes?.[0]?.timeMs).toBe(0);
+    expect(box?.keyframes?.[0]?.bbox).toEqual([0.1, 0.1, 0.2, 0.2]); // Initial origin preserved!
+    expect(box?.keyframes?.[1]?.timeMs).toBe(1000);
+    expect(box?.keyframes?.[1]?.bbox).toEqual([0.3, 0.3, 0.2, 0.2]);
+  });
 });

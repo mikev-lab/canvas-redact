@@ -86,6 +86,7 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
   const lastReverseTickRef = useRef<number | null>(null);
   const isSeekingRef = useRef(false);
   const targetReverseTimeRef = useRef(0);
+  const lastTargetMsRef = useRef(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(0);
@@ -190,6 +191,7 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
     const handleSeeked = () => {
       isSeekingRef.current = false;
       const ms = Math.round(video.currentTime * 1000);
+      lastTargetMsRef.current = ms;
       setCurrentTimeMs(ms);
 
       // If in reverse shuttle and target time has drifted further backward during decode,
@@ -262,6 +264,7 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
       : durationMs;
 
     const clampedMs = Math.max(0, Math.min(targetMs, maxMs));
+    lastTargetMsRef.current = clampedMs;
     targetReverseTimeRef.current = clampedMs / 1000;
     isSeekingRef.current = false;
     video.currentTime = clampedMs / 1000;
@@ -282,15 +285,23 @@ export function useVideoPlayback(options: UseVideoPlaybackOptions = {}): UseVide
     setIsPlaying(false);
 
     const deltaFrames = direction === 'forward' ? frameCount : -frameCount;
-    const currentMs = Math.round(video.currentTime * 1000);
+    const currentVideoMs = Math.round(video.currentTime * 1000);
+    const frameMs = 1000 / (fps || 30);
+    // Use lastTargetMsRef if within 3 frames to avoid reading stale video.currentTime during rapid stepping
+    const baseMs = Math.abs(lastTargetMsRef.current - currentVideoMs) <= frameMs * 3
+      ? lastTargetMsRef.current
+      : currentVideoMs;
+
     const maxMs = Number.isFinite(video.duration) && video.duration > 0
       ? Math.round(video.duration * 1000)
       : durationMs;
 
-    const nextMs = stepFrameTime(currentMs, deltaFrames, maxMs, fps);
-    targetReverseTimeRef.current = nextMs / 1000;
-    video.currentTime = nextMs / 1000;
-    setCurrentTimeMs(Math.round(nextMs));
+    const nextMs = stepFrameTime(baseMs, deltaFrames, maxMs, fps);
+    const roundedNextMs = Math.round(nextMs);
+    lastTargetMsRef.current = roundedNextMs;
+    targetReverseTimeRef.current = roundedNextMs / 1000;
+    video.currentTime = roundedNextMs / 1000;
+    setCurrentTimeMs(roundedNextMs);
   }, [durationMs, fps]);
 
   const setRate = useCallback((rate: number) => {

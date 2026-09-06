@@ -11,7 +11,7 @@ import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { RedactionBox } from './types';
 import { createExportPayload, validateAndSanitizeImport } from './utils/export';
 import { findSurroundingKeyframes } from './utils/keyframes';
-import { msToTimecode } from './utils/timecode';
+import { msToTimecode, stepFrameTime } from './utils/timecode';
 
 import { useAutoDetection } from './hooks/useAutoDetection';
 import { Header } from './components/Header';
@@ -144,11 +144,26 @@ export default function App(): React.ReactElement {
         case ' ': // Space: Play/Pause OR Keyframe & Step in Tracking Mode
           e.preventDefault();
           if (isTrackingMode && redactionsState.selectedRedaction) {
+            const currentMs = playback.currentTimeMs;
+            const currentBbox = redactionsState.selectedRedaction.bbox;
+            const targetId = redactionsState.selectedRedaction.id;
+
+            // Commit keyframe at current position
             redactionsState.setKeyframe(
-              redactionsState.selectedRedaction.id,
-              playback.currentTimeMs,
-              redactionsState.selectedRedaction.bbox
+              targetId,
+              currentMs,
+              currentBbox
             );
+
+            // Pre-extend box bounds to next stepped frame so box remains active and visible
+            const deltaFrames = e.shiftKey ? -jumpFrames : jumpFrames;
+            const nextMs = stepFrameTime(currentMs, deltaFrames, playback.durationMs, playback.fps);
+            if (nextMs > redactionsState.selectedRedaction.endMs) {
+              redactionsState.setOutPoint(targetId, nextMs);
+            } else if (nextMs < redactionsState.selectedRedaction.startMs) {
+              redactionsState.setInPoint(targetId, nextMs);
+            }
+
             playback.stepFrame(e.shiftKey ? 'backward' : 'forward', jumpFrames);
           } else {
             playback.togglePlay();
