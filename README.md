@@ -1,17 +1,34 @@
+<div align="center">
+
 # canvas-redact
 
-> **High-performance, frame-accurate React + HTML5 Canvas video scrubber for evidence bounding box redaction and forensic timeline annotation.**
+### High-Performance Frame-Accurate React & HTML5 Canvas Video Scrubber for Forensic Bounding Box Redaction
 
-[![CI](https://github.com/mikev-lab/canvas-redact/actions/workflows/ci.yml/badge.svg)](https://github.com/mikev-lab/canvas-redact/actions/workflows/ci.yml)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Interactive%20Scrubber-emerald?style=flat&logo=googlechrome&logoColor=white)](https://mikev-lab.github.io/canvas-redact/)
-[![WCAG 2.1 AAA](https://img.shields.io/badge/WCAG%202.1-Level%20AAA-emerald)](https://www.w3.org/WAI/WCAG21/quickref/?levels=aaa)
-[![Air-Gapped](https://img.shields.io/badge/Privacy-100%25%20Air--Gapped-blue)](https://github.com/mikev-lab/canvas-redact)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Mode-3178c6)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-zinc)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Interactive%20Scrubber-059669?style=for-the-badge&logo=googlechrome&logoColor=white)](https://mikev-lab.github.io/canvas-redact/)
+[![Architecture Docs](https://img.shields.io/badge/Architecture-Technical%20Deep%20Dives-2563eb?style=for-the-badge&logo=gitbook&logoColor=white)](docs/ARCHITECTURE.md)
+
+<br/>
+
+[![CI](https://img.shields.io/github/actions/workflow/status/mikev-lab/canvas-redact/ci.yml?branch=main&label=CI&logo=githubactions&logoColor=white)](https://github.com/mikev-lab/canvas-redact/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/Tests-162%20Passed-10b981?logo=vitest&logoColor=white)](docs/TESTING_STRATEGY.md)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Mode-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=black)](https://react.dev/)
+[![Graphics](https://img.shields.io/badge/Graphics-HTML5%20Canvas%2060%20FPS-8b5cf6?logo=html5&logoColor=white)](docs/CANVAS_ENGINE.md)
+[![WCAG 2.1 AAA](https://img.shields.io/badge/WCAG%202.1-Level%20AAA-059669?logo=w3c&logoColor=white)](docs/FORENSIC_STANDARDS.md)
+[![Privacy](https://img.shields.io/badge/Security-100%25%20Air--Gapped-1d4ed8?logo=shield&logoColor=white)](docs/FORENSIC_STANDARDS.md)
+[![License](https://img.shields.io/badge/License-MIT-71717a?logo=open-source-initiative&logoColor=white)](LICENSE)
+
+<p align="center">
+  <b>100% client-side privacy: zero telemetry, zero server uploads, zero external video player dependencies.</b>
+  <br/>
+  Engineered for public safety evidence review, judicial FOIA compliance, and computer vision dataset annotation.
+</p>
+
+</div>
 
 ---
 
-> 🚀 **Live Interactive Demo:** [https://mikev-lab.github.io/canvas-redact/](https://mikev-lab.github.io/canvas-redact/)  
+> **Live Interactive Demo:** [https://mikev-lab.github.io/canvas-redact/](https://mikev-lab.github.io/canvas-redact/)  
 > *(Runs 100% client-side with zero install: drag and drop any local video file to begin)*
 
 ---
