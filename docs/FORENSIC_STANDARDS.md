@@ -33,7 +33,7 @@ flowchart TD
         VIP -->|Untouched Video Frames| CAN["HTML5 2D Canvas Overlay"]
         ANN["Vector Redactions: bbox = [nx, ny, nw, nh]"]
         REV_ID -->|Automatic Attribution| ANN
-        AI["AI Detection Engine (SORT Tracker)"] -->|Mark aiAssisted: true (FRE 901)| ANN
+        AI["AI Detection Engine: SORT Tracker"] -->|Mark aiAssisted: true - FRE 901| ANN
         ANN --> CAN
     end
 

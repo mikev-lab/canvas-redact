@@ -130,7 +130,7 @@ When importing JSON manifests from external sources, untrusted data must never b
 ```mermaid
 flowchart TD
     subgraph Import_Ingestion["Untrusted Ingestion Pipeline"]
-        A["Raw Imported JSON String"] -->|JSON.parse() Safe Exception Handling| B["Structural Schema Validation: Version 1.0.0"]
+        A["Raw Imported JSON String"] -->|Safe JSON Exception Parsing| B["Structural Schema Validation: Version 1.0.0"]
     end
 
     subgraph Defense_Sanitization["Defense-in-Depth Sanitization Filters"]

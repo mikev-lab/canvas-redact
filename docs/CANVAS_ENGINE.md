@@ -40,9 +40,9 @@ flowchart TD
     subgraph GPU_Backing_Store["GPU Rendering Pipeline"]
         LERP -->|Multiply by CSS Dimensions| REN["Display Screen Coordinates (px)"]
         REN -->|Scale by devicePixelRatio DPR| D["4. Canvas Backing Store Buffer Space (Physical Pixels on GPU)"]
-        D -->|ctx.filter = blur(12px)| F1["GPU Gaussian Blur"]
+        D -->|GPU Filter: Gaussian Blur| F1["GPU Gaussian Blur"]
         D -->|Scratch Canvas Downsampling| F2["Mosaic Pixelation (Nearest Neighbor)"]
-        D -->|ctx.fillRect(#000)| F3["Solid Blackout Censor"]
+        D -->|Solid Fill Blackout| F3["Solid Blackout Censor"]
     end
 ```
 
@@ -78,9 +78,9 @@ $$X_{\text{video}} = \text{round}(x_{\text{norm}} \times W_{\text{video}})$$
 
 $$Y_{\text{video}} = \text{round}(y_{\text{norm}} \times H_{\text{video}})$$
 
-$$W_{\text{video\_slice}} = \text{round}(w_{\text{norm}} \times W_{\text{video}})$$
+$$W_{\text{video-slice}} = \text{round}(w_{\text{norm}} \times W_{\text{video}})$$
 
-$$H_{\text{video\_slice}} = \text{round}(h_{\text{norm}} \times H_{\text{video}})$$
+$$H_{\text{video-slice}} = \text{round}(h_{\text{norm}} \times H_{\text{video}})$$
 
 ---
 

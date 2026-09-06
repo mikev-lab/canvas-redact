@@ -76,38 +76,21 @@ Pointer gestures on the canvas overlay are governed by a deterministic Finite St
 stateDiagram-v2
     [*] --> Idle
 
-    state Idle {
-        [*] --> Hovering
-        Hovering --> PointerDownEmpty: Pointer down on blank canvas
-        Hovering --> PointerDownBox: Pointer down inside existing box
-        Hovering --> PointerDownHandle: Pointer down on 8-point handle
-    }
+    Idle --> Drawing: Drag >= 5px on empty canvas
+    Idle --> Moving: Drag >= 3px inside box
+    Idle --> Resizing: Drag on 8-point handle
 
-    PointerDownEmpty --> Drawing: Drag distance >= 5px (micro-drag filter)
-    PointerDownEmpty --> Idle: Pointer up with distance < 5px (deselect)
+    Drawing --> Drawing: Window pointermove: update corner
+    Drawing --> Idle: Window pointerup: commit box
+    Drawing --> Idle: Escape key or cancel: abort
 
-    PointerDownBox --> Moving: Drag distance >= 3px
-    PointerDownBox --> Idle: Pointer up without drag (select box)
+    Moving --> Moving: Window pointermove: translate box
+    Moving --> Idle: Window pointerup: commit translation
+    Moving --> Idle: Escape key or cancel: revert
 
-    PointerDownHandle --> Resizing: Drag initiated on 8-point handle
-
-    state Drawing {
-        Drawing --> Drawing: Window pointermove (update current corner)
-        Drawing --> Idle: Window pointerup (clamp bounds, commit new RedactionBox)
-        Drawing --> Idle: Escape key / pointercancel (abort)
-    }
-
-    state Moving {
-        Moving --> Moving: Window pointermove (translate box, preserve dimensions)
-        Moving --> Idle: Window pointerup (clamp bounds, commit translated bbox)
-        Moving --> Idle: Escape key / pointercancel (revert)
-    }
-
-    state Resizing {
-        Resizing --> Resizing: Window pointermove (recalculate bounds with handle inversion)
-        Resizing --> Idle: Window pointerup (normalize rectified bbox, commit)
-        Resizing --> Idle: Escape key / pointercancel (revert)
-    }
+    Resizing --> Resizing: Window pointermove: handle inversion
+    Resizing --> Idle: Window pointerup: commit dimensions
+    Resizing --> Idle: Escape key or cancel: revert
 ```
 
 ### Event Listener Lifecycle Invariant
@@ -137,13 +120,13 @@ sequenceDiagram
 
     User->>Hook: Press J (shuttleRate = -1x)
     Hook->>Hook: Track wall-clock target time: t_target(t + dt)
-    alt Decoder Idle (!video.seeking && !isSeekingRef)
+    alt Decoder Idle: not seeking
         Hook->>Video: video.currentTime = t_target
         Note over Video: Hardware Decoder locates I-frame and decodes forward
-    else Decoder Busy (video.seeking === true)
+    else Decoder Busy: video seeking in progress
         Note over Hook: Accumulate target drift; do not interrupt pending seek
     end
-    Video-->>Hook: Native 'seeked' event fired!
+    Video-->>Hook: Native seeked event fired
     Hook->>Hook: Clear isSeekingRef, sync currentTimeMs
     Hook-->>Canvas: Trigger immediate renderFrame()
     opt Drift accumulated during decode

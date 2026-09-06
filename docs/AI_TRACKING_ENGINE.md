@@ -35,13 +35,13 @@ flowchart TD
     end
 
     subgraph Tracking_Engine["Spatial Kalman Tracking Engine (SORTTracker)"]
-        C -->|State Vector: [u, v, s, r, u', v', s', 0]| E["2D Kalman Filter: Constant-Velocity Projection"]
+        C -->|8-D Kinematic State Vector| E["2D Kalman Filter: Constant-Velocity Projection"]
         E -->|Spatial IoU Hungarian Matching >= 0.3| F["Persistent Subject Tracklets across Occlusion"]
     end
 
     subgraph Keyframe_Optimizer["Keyframe Trajectory Optimization"]
         F -->|Downsampling via Density Profile| G["Keyframe Optimizer: minIntervalMs Temporal Ceiling"]
-        G -->|Sparse (800ms) / Balanced (400ms) / Dense (200ms)| H["Optimized Keyframe Trajectories"]
+        G -->|Temporal Interval: Sparse, Balanced, or Dense| H["Optimized Keyframe Trajectories"]
     end
 
     subgraph Review_And_Commit["Subject Gallery Review & State Commit"]
@@ -49,7 +49,7 @@ flowchart TD
         H --> I
         I -->|Selective Person Checkboxes| J["Filter Selected Subjects"]
         I -->|Treatment: Blur / Pixelate / Blackout| J
-        I -->|Mark as AI-Assisted (FRE Rule 901)| J
+        I -->|Mark as AI-Assisted: FRE Rule 901| J
         J -->|One-Click Commit| K["useRedactions State (Real-Time Lerp Rendering)"]
     end
 ```
