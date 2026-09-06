@@ -131,6 +131,27 @@ describe('Evidence Export & Import Sanitization', () => {
       expect(() => validateAndSanitizeImport('{"version": "1.0.0"}')).toThrow(/Missing or invalid "metadata"/);
       expect(() => validateAndSanitizeImport('{"version": "1.0.0", "metadata": {}}')).toThrow(/"redactions" must be an array/);
     });
+
+    it('preserves, clamps, and chronologically sorts keyframe trajectories on export and import', () => {
+      const firstBox = mockRedactions[0]!;
+      const redactionsWithKeyframes: RedactionBox[] = [
+        {
+          ...firstBox,
+          keyframes: [
+            { timeMs: 3000, bbox: [0.5, 0.5, 0.2, 0.2] as [number, number, number, number] },
+            { timeMs: 1000, bbox: [0.1, 0.1, 0.2, 0.2] as [number, number, number, number] },
+          ],
+        },
+      ];
+
+      const exported = createExportPayload(mockVideoMeta, redactionsWithKeyframes);
+      expect(exported.redactions[0]?.keyframes).toHaveLength(2);
+
+      const imported = validateAndSanitizeImport(JSON.stringify(exported));
+      expect(imported.redactions[0]?.keyframes).toHaveLength(2);
+      expect(imported.redactions[0]?.keyframes?.[0]?.timeMs).toBe(1000);
+      expect(imported.redactions[0]?.keyframes?.[1]?.timeMs).toBe(3000);
+    });
   });
 
   describe('downloadJsonFile', () => {

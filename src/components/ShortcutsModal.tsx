@@ -19,10 +19,13 @@ interface ShortcutEntry {
 }
 
 const SHORTCUTS: ShortcutEntry[] = [
-  { key: 'Space', action: 'Play / Pause', description: 'Toggle video playback' },
+  { key: 'Space', action: 'Play / Pause', description: 'Toggle video playback (or Keyframe & Step in Tracking Mode)' },
+  { key: 'K / Enter', action: 'Record Keyframe', description: 'Record keyframe at current position without advancing' },
+  { key: 'T', action: 'Toggle Tracking', description: 'Toggle Censor Tracking Mode (Space = Keyframe & Step)' },
   { key: 'J / K / L', action: 'Forensic Shuttle', description: 'Reverse (-1x, -2x, -4x) / Pause / Forward (1x, 2x, 4x)' },
   { key: 'Left / Right Arrow', action: '1 Frame Step', description: 'Step backward or forward exactly 1 frame' },
-  { key: 'Shift + Left / Right', action: '1 Second Jump', description: 'Jump 30 frames backward or forward' },
+  { key: 'Shift + Left / Right', action: 'Frame Jump', description: 'Jump customizable frame distance backward or forward' },
+  { key: 'Alt + Left / Right', action: 'Jump Keyframe', description: 'Jump playhead to previous or next keyframe of selected box' },
   { key: '[', action: 'Set In-Point', description: 'Mark start timestamp for selected redaction' },
   { key: ']', action: 'Set Out-Point', description: 'Mark end timestamp for selected redaction' },
   { key: 'Tab / Shift + Tab', action: 'Cycle Selection', description: 'Navigate between visible bounding boxes' },

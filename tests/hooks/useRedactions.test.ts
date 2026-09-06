@@ -239,4 +239,53 @@ describe('useRedactions hook', () => {
     expect(result.current.redactions).toHaveLength(0);
     expect(result.current.selectedId).toBeNull();
   });
+
+  it('sets, removes, and clears keyframes and computes dynamic activeRedactions interpolation', () => {
+    let currentTime = 1000;
+    const { result, rerender } = renderHook(() => useRedactions(currentTime));
+
+    let id = '';
+    act(() => {
+      id = result.current.addRedaction({
+        label: 'Moving Subject',
+        type: 'blur',
+        startMs: 0,
+        endMs: 5000,
+        bbox: [0.1, 0.1, 0.2, 0.2]
+      });
+    });
+
+    // Record keyframe at t = 1000
+    act(() => {
+      result.current.setKeyframe(id, 1000, [0.1, 0.1, 0.2, 0.2]);
+    });
+
+    // Record keyframe at t = 3000 with moved box
+    act(() => {
+      result.current.setKeyframe(id, 3000, [0.3, 0.5, 0.2, 0.2]);
+    });
+
+    const box = result.current.redactions.find(r => r.id === id);
+    // Seeded with startMs (0) anchor plus 1000 and 3000
+    expect(box?.keyframes).toHaveLength(3);
+
+    // At t = 2000 (midpoint), activeRedactions should output interpolated bbox [0.2, 0.3, 0.2, 0.2]
+    currentTime = 2000;
+    rerender();
+
+    expect(result.current.activeRedactions[0]!.bbox).toEqual([0.2, 0.3, 0.2, 0.2]);
+    expect(result.current.selectedRedaction?.bbox).toEqual([0.2, 0.3, 0.2, 0.2]);
+
+    // Remove keyframe at 3000
+    act(() => {
+      result.current.removeKeyframe(id, 3000);
+    });
+    expect(result.current.redactions.find(r => r.id === id)?.keyframes).toHaveLength(2);
+
+    // Clear all keyframes
+    act(() => {
+      result.current.clearKeyframes(id);
+    });
+    expect(result.current.redactions.find(r => r.id === id)?.keyframes).toBeUndefined();
+  });
 });

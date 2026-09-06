@@ -32,11 +32,14 @@ Engineered specifically for evidence handling, **canvas-redact** operates **100%
   * **Gaussian Defocus Blur:** Soft privacy blur applied via hardware-accelerated 2D context filtering.
   * **Mosaic Pixelation:** Spatial subsampling rendered using an offscreen scratch buffer with nearest-neighbor interpolation.
   * **Solid Blackout:** Complete opaque censor masking with centered metadata labels.
+* **Dynamic Keyframe Trajectories & Moving Redactions:** Piecewise linear bounding box interpolation (`lerp`) across continuous timestamps at 60 FPS. Censorship moves smoothly with walking subjects, running suspects, or moving vehicles without popping.
+* **Rapid Forensic Censor Tracking Mode:** Specialized rotoscoping workflow tying keyframe recording and automatic stepping to the `Space` bar (or `M`/`Enter`), enabling operators to track moving targets frame-by-frame with zero friction.
+* **Customizable Frame Jump Stepping:** Instant multi-frame navigation with configurable jump distances (1, 2, 5, 10, or 30 frames) triggered via `Shift + Left/Right Arrow` or quick-action toolbar buttons.
 * **Normalized Video Space $[0.0, 1.0]$:** All bounding box coordinates are calculated and stored as fractional ratios relative to intrinsic video dimensions, ensuring display invariance across responsive resizing, full-screen mode, and letterbox pillarboxing.
 * **8-Point Handle Transformation Geometry:** Interactive resize handles with automatic coordinate inversion math when dragged past opposing boundaries.
-* **Multi-Track Forensic Timeline:** Drag-and-seek playhead, calibrated time ruler, visual interval validity bars, and draggable In/Out point marker brackets.
-* **Forensic Shuttle & Keyboard Controls:** Industry-standard video editing navigation (`Space`, `J/K/L` shuttle speeds from -4x to 4x, 1-frame steppers, 30-frame jumps, `[` and `]` in/out markers).
-* **Evidence Review Import & Export Schema (`v1.0.0`):** Bi-directional evidence manifest handling (export and import) with defense-in-depth label sanitization, coordinate clamping, and automatic timestamp ordering.
+* **Multi-Track Forensic Timeline:** Drag-and-seek playhead, calibrated time ruler, visual interval validity bars, interactive diamond keyframe markers, and draggable In/Out point marker brackets.
+* **Forensic Shuttle & Keyboard Controls:** Industry-standard video editing navigation (`Space`, `J/K/L` shuttle speeds from -4x to 4x, 1-frame steppers, customizable jumps, `[` and `]` in/out markers).
+* **Evidence Review Import & Export Schema (`v1.0.0`):** Bi-directional evidence manifest handling (export and import) with keyframe trajectory persistence, defense-in-depth label sanitization, coordinate clamping, and automatic timestamp ordering.
 * **Client-Side Face Tracking & Auto-Redaction Architecture:** Designed for local, zero-network facial detection and re-identification trajectories using in-browser WebAssembly/WebGPU runtimes.
 * **Drag-and-Drop Forensic Workspace:** Instant video ingestion with automatic hardware aspect-ratio preservation, native letterboxing detection, and zero file upload latency.
 * **WCAG 2.1 Level AAA Accessibility:** Enhanced $\ge 7:1$ contrast against obsidian surfaces, visible high-contrast focus rings, full keyboard operability without a mouse, multi-modal indicator coding, and ARIA live regions.
@@ -47,14 +50,18 @@ Engineered specifically for evidence handling, **canvas-redact** operates **100%
 
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
-| `Space` | Play / Pause | Toggle continuous video playback |
+| `Space` | Play / Pause or Keyframe Step | Toggle playback (or in Tracking Mode: mark keyframe and step) |
+| `T` | Censor Tracking Mode | Toggle Tracking Mode (Space marks keyframe and steps forward) |
+| `M` / `Enter` | Mark Keyframe | Record keyframe for selected box at current timestamp |
+| `Alt + Left Arrow` | Previous Keyframe | Jump playhead to previous recorded trajectory keyframe |
+| `Alt + Right Arrow` | Next Keyframe | Jump playhead to next recorded trajectory keyframe |
 | `J` | Shuttle Reverse | Accelerate reverse playback (-1x, -2x, -4x) via RAF seeking |
 | `K` | Shuttle Pause | Pause playback (0x) |
 | `L` | Shuttle Forward | Accelerate forward playback (1x, 2x, 4x) |
 | `Left Arrow` | Step Back 1 Frame | Step backward exactly 1 frame (33.33ms at 30 FPS) |
 | `Right Arrow` | Step Forward 1 Frame | Step forward exactly 1 frame (33.33ms at 30 FPS) |
-| `Shift + Left Arrow` | Jump Back 1 Second | Seek backward 30 frames (1000ms) |
-| `Shift + Right Arrow` | Jump Forward 1 Second | Seek forward 30 frames (1000ms) |
+| `Shift + Left Arrow` | Jump Back | Seek backward by custom jump frames (1f, 2f, 5f, 10f, 30f) |
+| `Shift + Right Arrow` | Jump Forward | Seek forward by custom jump frames (1f, 2f, 5f, 10f, 30f) |
 | `[` | Set In-Point | Mark beginning timestamp (`startMs`) for selected box |
 | `]` | Set Out-Point | Mark ending timestamp (`endMs`) for selected box |
 | `Tab` / `Shift + Tab` | Cycle Selection | Navigate focus through active bounding boxes |

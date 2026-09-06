@@ -24,6 +24,16 @@ export type NormalizedBBoxTuple = [
 ];
 
 /**
+ * Keyframe snapshot capturing a bounding box at a discrete timestamp.
+ */
+export interface RedactionKeyframe {
+  /** Timestamp in milliseconds */
+  timeMs: number;
+  /** Normalized bounding box [x, y, width, height] at this keyframe */
+  bbox: NormalizedBBoxTuple;
+}
+
+/**
  * Core in-memory redaction annotation entity.
  */
 export interface RedactionBox {
@@ -37,8 +47,10 @@ export interface RedactionBox {
   startMs: number;
   /** Timecode out-point in milliseconds (inclusive) */
   endMs: number;
-  /** Normalized bounding box relative to video resolution */
+  /** Normalized bounding box relative to video resolution (or base fallback state) */
   bbox: NormalizedBBoxTuple;
+  /** Optional chronologically ordered sequence of trajectory keyframes */
+  keyframes?: RedactionKeyframe[];
 }
 
 /**

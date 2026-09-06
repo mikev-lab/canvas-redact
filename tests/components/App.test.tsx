@@ -165,4 +165,73 @@ describe('App root component & global forensic keyboard coordinator', () => {
 
     window.FileReader = originalFileReader;
   });
+
+  it('supports Censor Tracking Mode toggle, keyframe marking hotkeys, and stepping', async () => {
+    render(<App />);
+    await loadTestAnnotations();
+
+    // Select the redaction box to open inspector
+    const suspectElements = screen.getAllByText('Suspect Face');
+    fireEvent.click(suspectElements[0]!);
+
+    // Verify keyframe count starts at 0 Saved
+    expect(screen.getByText('0 Saved')).toBeInTheDocument();
+
+    // Press 'm' to mark keyframe at current position (t=0)
+    fireEvent.keyDown(window, { key: 'm' });
+
+    // Should now have 1 keyframe recorded
+    await waitFor(() => {
+      expect(screen.getByText('1 Saved')).toBeInTheDocument();
+    });
+
+    // Toggle Tracking Mode using 't' hotkey
+    fireEvent.keyDown(window, { key: 't' });
+    expect(screen.getByText(/ON \(Space = Step\)/i)).toBeInTheDocument();
+
+    // With Tracking Mode enabled and box selected, pressing Space marks keyframe at current pos and steps forward
+    fireEvent.keyDown(window, { key: ' ' });
+
+    // Press Space again at the new stepped position to record a second keyframe
+    fireEvent.keyDown(window, { key: ' ' });
+
+    // Should now have 2 keyframes recorded
+    await waitFor(() => {
+      expect(screen.getByText('2 Saved')).toBeInTheDocument();
+    });
+
+    // Press 't' again to disable tracking mode
+    fireEvent.keyDown(window, { key: 't' });
+    expect(screen.getByRole('button', { name: /Toggle Censor Tracking Mode \(current: OFF\)/i })).toBeInTheDocument();
+  });
+
+  it('navigates between keyframes using Alt+Left and Alt+Right', async () => {
+    render(<App />);
+    await loadTestAnnotations();
+
+    // Select the redaction box
+    const suspectElements = screen.getAllByText('Suspect Face');
+    fireEvent.click(suspectElements[0]!);
+
+    // Mark keyframe at current position
+    fireEvent.keyDown(window, { key: 'Enter' });
+    await waitFor(() => {
+      expect(screen.getByText('1 Saved')).toBeInTheDocument();
+    });
+
+    // Step forward 5 frames
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+
+    // Mark another keyframe
+    fireEvent.keyDown(window, { key: 'Enter' });
+    await waitFor(() => {
+      expect(screen.getByText('2 Saved')).toBeInTheDocument();
+    });
+
+    // Press Alt+ArrowLeft to jump back to previous keyframe
+    fireEvent.keyDown(window, { key: 'ArrowLeft', altKey: true });
+
+    // Press Alt+ArrowRight to jump forward to next keyframe
+    fireEvent.keyDown(window, { key: 'ArrowRight', altKey: true });
+  });
 });

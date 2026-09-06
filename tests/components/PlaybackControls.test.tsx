@@ -59,17 +59,26 @@ describe('PlaybackControls component', () => {
     expect(onStepFrame).toHaveBeenCalledWith('backward', 1);
   });
 
-  it('jumps 1 second backward and forward with shift shortcuts', () => {
+  it('jumps customizable frame count backward and forward with shift shortcuts', () => {
     const onStepFrame = vi.fn();
-    render(<PlaybackControls {...defaultProps} onStepFrame={onStepFrame} />);
+    render(<PlaybackControls {...defaultProps} jumpFrames={30} onStepFrame={onStepFrame} />);
 
-    const jumpForwardBtn = screen.getByRole('button', { name: /Jump 1 second forward/i });
+    const jumpForwardBtn = screen.getByRole('button', { name: /Jump 30 frames forward/i });
     fireEvent.click(jumpForwardBtn);
     expect(onStepFrame).toHaveBeenCalledWith('forward', 30);
 
-    const jumpBackwardBtn = screen.getByRole('button', { name: /Jump 1 second backward/i });
+    const jumpBackwardBtn = screen.getByRole('button', { name: /Jump 30 frames backward/i });
     fireEvent.click(jumpBackwardBtn);
     expect(onStepFrame).toHaveBeenCalledWith('backward', 30);
+  });
+
+  it('triggers onSetJumpFrames callback when jump button is selected', () => {
+    const onSetJumpFrames = vi.fn();
+    render(<PlaybackControls {...defaultProps} jumpFrames={5} onSetJumpFrames={onSetJumpFrames} />);
+
+    const btn10 = screen.getByRole('button', { name: /Set frame jump distance to 10 frames/i });
+    fireEvent.click(btn10);
+    expect(onSetJumpFrames).toHaveBeenCalledWith(10);
   });
 
   it('triggers J/K/L forensic shuttle actions', () => {

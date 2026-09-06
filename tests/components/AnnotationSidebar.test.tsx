@@ -112,4 +112,35 @@ describe('AnnotationSidebar component', () => {
     expect(onSelectRedaction).toHaveBeenCalledWith('box-2');
     expect(onSeek).toHaveBeenCalledWith(2000);
   });
+
+  it('triggers keyframe actions and toggles tracking mode', () => {
+    const onSetKeyframe = vi.fn();
+    const onToggleTrackingMode = vi.fn();
+    const selectedWithKf = {
+      ...box1,
+      keyframes: [
+        { timeMs: 1000, bbox: [0.1, 0.1, 0.2, 0.2] as [number, number, number, number] }
+      ]
+    };
+
+    render(
+      <AnnotationSidebar
+        {...defaultProps}
+        selectedRedaction={selectedWithKf}
+        isTrackingMode={false}
+        onToggleTrackingMode={onToggleTrackingMode}
+        onSetKeyframe={onSetKeyframe}
+      />
+    );
+
+    expect(screen.getByText('1 Saved')).toBeInTheDocument();
+
+    const addKfBtn = screen.getByRole('button', { name: /Record keyframe at current timestamp/i });
+    fireEvent.click(addKfBtn);
+    expect(onSetKeyframe).toHaveBeenCalledWith('box-1', 1500, selectedWithKf.bbox);
+
+    const trackingModeBtn = screen.getByRole('button', { name: /Toggle Censor Tracking Mode/i });
+    fireEvent.click(trackingModeBtn);
+    expect(onToggleTrackingMode).toHaveBeenCalled();
+  });
 });

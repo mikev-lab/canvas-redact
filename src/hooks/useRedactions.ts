@@ -6,6 +6,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { RedactionBox, ExportPayload, NormalizedBBoxTuple, RedactionType } from '../types';
 import { sanitizeLabel, validateAndSanitizeImport } from '../utils/export';
+import { interpolateBBox, upsertKeyframe, removeKeyframeNear } from '../utils/keyframes';
 
 export interface UseRedactionsOptions {
   /** Initial redaction collection */
@@ -35,6 +36,12 @@ export interface UseRedactionsReturn {
   setInPoint: (id: string, startMs: number) => void;
   /** Adjust out-point (end timestamp) with automatic inversion correction */
   setOutPoint: (id: string, endMs: number) => void;
+  /** Record or update a keyframe snapshot for a redaction at a specific timestamp */
+  setKeyframe: (id: string, timeMs: number, bbox: NormalizedBBoxTuple) => void;
+  /** Remove a keyframe near a specific timestamp */
+  removeKeyframe: (id: string, timeMs: number) => void;
+  /** Clear all keyframes from a redaction box */
+  clearKeyframes: (id: string) => void;
   /** Cycle selection forward or backward through visible redactions (Tab / Shift+Tab) */
   cycleSelection: (direction?: 'forward' | 'backward') => void;
   /** Reset all redactions and clear selection */
@@ -58,16 +65,34 @@ export function useRedactions(
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const idCounterRef = useRef(1);
 
-  // Active redactions filtered by current timecode window [startMs, endMs]
+  // Active redactions filtered by current timecode window [startMs, endMs] with dynamic interpolation
   const activeRedactions = useMemo(() => {
-    return redactions.filter(r => currentTimeMs >= r.startMs && currentTimeMs <= r.endMs);
+    return redactions
+      .filter(r => currentTimeMs >= r.startMs && currentTimeMs <= r.endMs)
+      .map(r => {
+        if (!r.keyframes || r.keyframes.length === 0) {
+          return r;
+        }
+        return {
+          ...r,
+          bbox: interpolateBBox(r.keyframes, r.bbox, currentTimeMs)
+        };
+      });
   }, [redactions, currentTimeMs]);
 
-  // Selected redaction lookup
+  // Selected redaction lookup with interpolated bounding box
   const selectedRedaction = useMemo(() => {
     if (!selectedId) return null;
-    return redactions.find(r => r.id === selectedId) || null;
-  }, [redactions, selectedId]);
+    const found = redactions.find(r => r.id === selectedId);
+    if (!found) return null;
+    if (found.keyframes && found.keyframes.length > 0) {
+      return {
+        ...found,
+        bbox: interpolateBBox(found.keyframes, found.bbox, currentTimeMs)
+      };
+    }
+    return found;
+  }, [redactions, selectedId, currentTimeMs]);
 
   const addRedaction = useCallback((box: Omit<RedactionBox, 'id'>): string => {
     const id = `redact-${Date.now()}-${idCounterRef.current++}`;
@@ -120,6 +145,7 @@ export function useRedactions(
         }
 
         let nextBbox = r.bbox;
+        let nextKeyframes = r.keyframes;
         if (updates.bbox) {
           const [normX, normY, normW, normH] = updates.bbox;
           const clampedX = Math.max(0, Math.min(1, normX));
@@ -127,6 +153,11 @@ export function useRedactions(
           const clampedW = Math.max(0, Math.min(1 - clampedX, normW));
           const clampedH = Math.max(0, Math.min(1 - clampedY, normH));
           nextBbox = [clampedX, clampedY, clampedW, clampedH];
+
+          // If the box has active keyframes, update the keyframe at the current timestamp
+          if (nextKeyframes && nextKeyframes.length > 0) {
+            nextKeyframes = upsertKeyframe(nextKeyframes, currentTimeMs, nextBbox);
+          }
         }
 
         return {
@@ -135,11 +166,12 @@ export function useRedactions(
           label: nextLabel,
           startMs: nextStartMs,
           endMs: nextEndMs,
-          bbox: nextBbox
+          bbox: nextBbox,
+          ...(nextKeyframes ? { keyframes: nextKeyframes } : {})
         };
       })
     );
-  }, []);
+  }, [currentTimeMs]);
 
   const removeRedaction = useCallback((id: string) => {
     setRedactions(prev => prev.filter(r => r.id !== id));
@@ -176,6 +208,49 @@ export function useRedactions(
           startMs: nextStartMs,
           endMs
         };
+      })
+    );
+  }, []);
+
+  const setKeyframe = useCallback((id: string, timeMs: number, bbox: NormalizedBBoxTuple) => {
+    setRedactions(prev =>
+      prev.map(r => {
+        if (r.id !== id) return r;
+        let existingKeyframes = r.keyframes;
+        if (!existingKeyframes || existingKeyframes.length === 0) {
+          existingKeyframes = timeMs > r.startMs
+            ? [{ timeMs: r.startMs, bbox: r.bbox }]
+            : [];
+        }
+        const updatedKeyframes = upsertKeyframe(existingKeyframes, timeMs, bbox);
+        return {
+          ...r,
+          bbox,
+          keyframes: updatedKeyframes
+        };
+      })
+    );
+  }, []);
+
+  const removeKeyframe = useCallback((id: string, timeMs: number) => {
+    setRedactions(prev =>
+      prev.map(r => {
+        if (r.id !== id) return r;
+        const updatedKeyframes = removeKeyframeNear(r.keyframes, timeMs);
+        return {
+          ...r,
+          keyframes: updatedKeyframes.length > 0 ? updatedKeyframes : undefined
+        };
+      })
+    );
+  }, []);
+
+  const clearKeyframes = useCallback((id: string) => {
+    setRedactions(prev =>
+      prev.map(r => {
+        if (r.id !== id) return r;
+        const { keyframes: _, ...rest } = r;
+        return rest;
       })
     );
   }, []);
@@ -243,6 +318,9 @@ export function useRedactions(
     selectRedaction,
     setInPoint,
     setOutPoint,
+    setKeyframe,
+    removeKeyframe,
+    clearKeyframes,
     cycleSelection,
     clearAll,
     importPayload

@@ -54,6 +54,19 @@ export function createExportPayload(
         clamp(box.bbox[2], 0, 1 - clamp(box.bbox[0], 0, 1)),
         clamp(box.bbox[3], 0, 1 - clamp(box.bbox[1], 0, 1)),
       ],
+      ...(box.keyframes && box.keyframes.length > 0
+        ? {
+            keyframes: box.keyframes.map((k) => ({
+              timeMs: Math.round(k.timeMs),
+              bbox: [
+                clamp(k.bbox[0], 0, 1),
+                clamp(k.bbox[1], 0, 1),
+                clamp(k.bbox[2], 0, 1 - clamp(k.bbox[0], 0, 1)),
+                clamp(k.bbox[3], 0, 1 - clamp(k.bbox[1], 0, 1)),
+              ],
+            })),
+          }
+        : {}),
     })),
   };
 }
@@ -145,6 +158,33 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
       bbox = [b0, b1, b2, b3];
     }
 
+    // Validate and sanitize keyframes if provided
+    let keyframes: import('../types').RedactionKeyframe[] | undefined = undefined;
+    if (Array.isArray(rawBox.keyframes) && rawBox.keyframes.length > 0) {
+      const parsedKeyframes = rawBox.keyframes
+        .map((rawK: unknown) => {
+          if (!rawK || typeof rawK !== 'object') return null;
+          const k = rawK as Record<string, unknown>;
+          if (typeof k.timeMs !== 'number' || !Array.isArray(k.bbox) || k.bbox.length !== 4) {
+            return null;
+          }
+          const kb0 = typeof k.bbox[0] === 'number' ? clamp(k.bbox[0], 0, 1) : 0;
+          const kb1 = typeof k.bbox[1] === 'number' ? clamp(k.bbox[1], 0, 1) : 0;
+          const kb2 = typeof k.bbox[2] === 'number' ? clamp(k.bbox[2], 0, 1 - kb0) : 0.2;
+          const kb3 = typeof k.bbox[3] === 'number' ? clamp(k.bbox[3], 0, 1 - kb1) : 0.2;
+          return {
+            timeMs: Math.max(0, Math.round(k.timeMs)),
+            bbox: [kb0, kb1, kb2, kb3] as NormalizedBBoxTuple,
+          };
+        })
+        .filter((k): k is import('../types').RedactionKeyframe => k !== null)
+        .sort((a, b) => a.timeMs - b.timeMs);
+
+      if (parsedKeyframes.length > 0) {
+        keyframes = parsedKeyframes;
+      }
+    }
+
     sanitizedRedactions.push({
       id,
       label,
@@ -152,6 +192,7 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
       startMs: Math.max(0, startMs),
       endMs: Math.max(0, endMs),
       bbox,
+      ...(keyframes ? { keyframes } : {}),
     });
   }
 

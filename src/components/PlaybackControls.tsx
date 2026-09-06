@@ -31,6 +31,10 @@ export interface PlaybackControlsProps {
   shuttleRate: number;
   /** Frames per second (default: 30) */
   fps: number;
+  /** Number of frames to jump on quick-jump (default: 5) */
+  jumpFrames?: number;
+  /** Jump frames change callback */
+  onSetJumpFrames?: (frames: number) => void;
   /** Audio output volume in range [0.0, 1.0] */
   volume: number;
   /** Audio mute status */
@@ -65,6 +69,8 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   playbackRate,
   shuttleRate,
   fps,
+  jumpFrames = 5,
+  onSetJumpFrames,
   volume,
   isMuted,
   isReady,
@@ -96,14 +102,14 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
 
       {/* Left section: Playback & Frame Stepping Buttons */}
       <div className="flex items-center gap-1.5">
-        {/* Jump 1-second Backward (Shift + Left) */}
+        {/* Jump Backward (Shift + Left) */}
         <button
           type="button"
-          onClick={() => onStepFrame('backward', Math.round(fps))}
+          onClick={() => onStepFrame('backward', jumpFrames)}
           disabled={!isReady || currentTimeMs <= 0}
           className="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-300 hover:text-white border border-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          aria-label="Jump 1 second backward (Shift + Left Arrow)"
-          title="Jump 1s Backward (Shift+Left)"
+          aria-label={`Jump ${jumpFrames} frames backward (Shift + Left Arrow)`}
+          title={`Jump ${jumpFrames}f Backward (Shift+Left)`}
         >
           <ChevronsLeft className="w-4 h-4" aria-hidden="true" />
         </button>
@@ -154,17 +160,40 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
           <ChevronRight className="w-4 h-4" aria-hidden="true" />
         </button>
 
-        {/* Jump 1-second Forward (Shift + Right) */}
+        {/* Jump Forward (Shift + Right) */}
         <button
           type="button"
-          onClick={() => onStepFrame('forward', Math.round(fps))}
+          onClick={() => onStepFrame('forward', jumpFrames)}
           disabled={!isReady || (durationMs > 0 && currentTimeMs >= durationMs)}
           className="p-1.5 rounded bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-300 hover:text-white border border-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          aria-label="Jump 1 second forward (Shift + Right Arrow)"
-          title="Jump 1s Forward (Shift+Right)"
+          aria-label={`Jump ${jumpFrames} frames forward (Shift + Right Arrow)`}
+          title={`Jump ${jumpFrames}f Forward (Shift+Right)`}
         >
           <ChevronsRight className="w-4 h-4" aria-hidden="true" />
         </button>
+
+        {/* Customizable Jump Step Selector */}
+        {onSetJumpFrames && (
+          <div className="flex items-center gap-1 bg-zinc-900/90 border border-zinc-800 rounded px-1.5 py-1 text-[10px] text-zinc-400 font-mono ml-1">
+            <span className="text-zinc-500 uppercase font-sans font-semibold text-[9px]">Jump:</span>
+            {[1, 2, 5, 10, 30].map(f => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => onSetJumpFrames(f)}
+                className={`px-1.5 py-0.5 rounded transition-colors ${
+                  jumpFrames === f
+                    ? 'bg-blue-600 text-white font-bold'
+                    : 'hover:bg-zinc-800 text-zinc-300'
+                }`}
+                aria-label={`Set frame jump distance to ${f} frames`}
+                title={`Set jump step to ${f} frames`}
+              >
+                {f}f
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Middle section: Forensic J/K/L Shuttle & Rate Selector */}

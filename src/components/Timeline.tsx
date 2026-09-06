@@ -223,12 +223,38 @@ export const Timeline: React.FC<TimelineProps> = ({
                   onSelectRedaction(box.id);
                   onSeek(box.startMs);
                 }}
-                className={`relative h-3 rounded border text-[9px] font-mono font-semibold truncate px-1 flex items-center shadow-sm pointer-events-auto cursor-pointer transition-all ${barColor} ${
+                className={`relative h-3 rounded border text-[9px] font-mono font-semibold px-1 flex items-center shadow-sm pointer-events-auto cursor-pointer transition-all ${barColor} ${
                   isSelected ? 'ring-2 ring-white border-white brightness-125 z-20' : 'opacity-80 hover:opacity-100'
                 }`}
                 title={`${box.label} (${box.type}): ${msToTimecode(box.startMs, fps).formatted} -> ${msToTimecode(box.endMs, fps).formatted}`}
               >
-                <span className="truncate">{box.label}</span>
+                <span className="truncate mr-1">{box.label}</span>
+
+                {/* Keyframe Diamond Markers */}
+                {box.keyframes && box.keyframes.map((k, kIdx) => {
+                  const segDuration = Math.max(1, box.endMs - box.startMs);
+                  const kOffsetPct = Math.max(0, Math.min(100, ((k.timeMs - box.startMs) / segDuration) * 100));
+                  const isKeyframeActive = Math.abs(currentTimeMs - k.timeMs) <= (1000 / fps) * 0.75;
+                  return (
+                    <div
+                      key={`kf-${box.id}-${kIdx}`}
+                      style={{ left: `${kOffsetPct}%` }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectRedaction(box.id);
+                        onSeek(k.timeMs);
+                      }}
+                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 rotate-45 z-30 pointer-events-auto cursor-pointer shadow transition-transform ${
+                        isKeyframeActive
+                          ? 'bg-amber-400 border border-amber-100 scale-125 ring-2 ring-amber-400/60'
+                          : 'bg-white hover:bg-amber-200 border border-zinc-900 hover:scale-125'
+                      }`}
+                      title={`Keyframe at ${msToTimecode(k.timeMs, fps).formatted} (Click to jump)`}
+                      aria-label={`Keyframe for ${box.label} at ${msToTimecode(k.timeMs, fps).formatted}`}
+                      role="button"
+                    />
+                  );
+                })}
               </div>
             );
           })}

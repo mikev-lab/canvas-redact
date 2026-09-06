@@ -265,3 +265,58 @@ $$t_{\text{target}} = \text{round}\left(\frac{t_{\text{current}} + \Delta \text{
 * Media with $\text{fps} < 15$ dynamically shifts the timeline ruler division ticks to whole-second markers ($1\text{s}, 2\text{s}, 5\text{s}, 10\text{s}$), preventing tick crowding.
 * Frame-stepping hotkeys (`Left/Right` arrow) accurately jump to the nearest recorded video keyframe.
 * The evidence review manifest records `metadata.fps`, ensuring frame-accurate chain-of-custody reproducibility during court proceedings.
+
+---
+
+## 10. Dynamic Keyframe Trajectories & Piecewise Linear Interpolation (`lerp`)
+
+To redact moving objects (such as walking suspects, running bystanders, or vehicles traveling across the frame) without popping or requiring disjointed static boxes, **canvas-redact** implements continuous piecewise linear interpolation (`lerp`) across bounding box coordinates in normalized video space $[0.0, 1.0]$.
+
+### 10.1 Keyframe Data Model
+
+Each redaction box optionally contains a chronological sequence of spatial keyframes:
+
+$$K = \{(t_0, \mathbf{b}_0), (t_1, \mathbf{b}_1), \dots, (t_m, \mathbf{b}_m)\}, \quad \text{where } t_i < t_{i+1}$$
+
+where each bounding box $\mathbf{b}_i = [x_i, y_i, w_i, h_i] \in [0.0, 1.0]^4$.
+
+### 10.2 Interpolation Formulation
+
+For any active playback timestamp $t \in [\text{startMs}, \text{endMs}]$:
+
+1. **Boundary Clamping:**
+   - If $t \le t_0$, $\text{bbox}(t) = \mathbf{b}_0$.
+   - If $t \ge t_m$, $\text{bbox}(t) = \mathbf{b}_m$.
+
+2. **Piecewise Linear Interpolation (`lerp`):**
+   - Locate adjacent keyframes $(t_k, \mathbf{b}_k)$ and $(t_{k+1}, \mathbf{b}_{k+1})$ such that $t_k \le t \le t_{k+1}$.
+   - Compute normalized interpolation factor:
+     $$\alpha = \frac{t - t_k}{t_{k+1} - t_k}, \quad \alpha \in [0.0, 1.0]$$
+   - Apply element-wise linear interpolation:
+     $$\mathbf{b}(t) = (1 - \alpha)\mathbf{b}_k + \alpha\mathbf{b}_{k+1}$$
+   - Clamp all coordinates to $[0.0, 1.0]$:
+     $$x(t) = \max(0, \min(1, (1 - \alpha)x_k + \alpha x_{k+1}))$$
+     $$y(t) = \max(0, \min(1, (1 - \alpha)y_k + \alpha y_{k+1}))$$
+     $$w(t) = \max(0, \min(1 - x(t), (1 - \alpha)w_k + \alpha w_{k+1}))$$
+     $$h(t) = \max(0, \min(1 - y(t), (1 - \alpha)h_k + \alpha h_{k+1}))$$
+
+### 10.3 Automatic Anchor Seeding
+
+To prevent unanchored floating box artifacts when an operator adds their first keyframe at $t > \text{startMs}$, the system automatically seeds an initial anchor keyframe at $t = \text{startMs}$ using the box's base coordinates:
+
+$$K_{\text{initial}} = \{(\text{startMs}, \mathbf{b}_{\text{base}}), (t, \mathbf{b}_{\text{new}})\}$$
+
+This guarantees smooth trajectory interpolation from the very start of the segment.
+
+### 10.4 Rapid Censor Tracking Mode (Rotoscoping Workflow)
+
+To minimize operator fatigue during evidence redaction:
+* **Toggle Tracking Mode (`T` key):** Activates rapid rotoscoping mode.
+* **Keyframe & Step Hotkey (`Space` bar):**
+  - When Tracking Mode is enabled and an active box is selected:
+    1. Records or updates the keyframe at current playhead position with current bounding box geometry.
+    2. Automatically advances playhead forward by `jumpFrames` (e.g. 1 frame, 2 frames, 5 frames, 10 frames, or 30 frames).
+  - The operator repositions the box over the target and taps `Space` again.
+  - When Tracking Mode is disabled (or no box is selected): `Space` acts as standard forensic Play/Pause toggle.
+* **Direct Keyframe Hotkeys:** `Enter` or `M` to record in place, `Alt + Left/Right Arrow` to navigate between keyframes, and `Shift + Left/Right Arrow` to step by custom jump intervals.
+

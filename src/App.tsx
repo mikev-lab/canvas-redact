@@ -9,6 +9,8 @@ import { useVideoPlayback } from './hooks/useVideoPlayback';
 import { useRedactions } from './hooks/useRedactions';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { createExportPayload, validateAndSanitizeImport } from './utils/export';
+import { findSurroundingKeyframes } from './utils/keyframes';
+import { msToTimecode } from './utils/timecode';
 
 import { Header } from './components/Header';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -22,7 +24,9 @@ export default function App(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isTrackingMode, setIsTrackingMode] = useState(false);
+  const [jumpFrames, setJumpFrames] = useState(5);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   // 1. Media Playback Hook
   const playback = useVideoPlayback({ defaultFps: 30 });
@@ -90,9 +94,50 @@ export default function App(): React.ReactElement {
       }
 
       switch (e.key) {
-        case ' ': // Space: Toggle Play/Pause
+        case ' ': // Space: Play/Pause OR Keyframe & Step in Tracking Mode
           e.preventDefault();
-          playback.togglePlay();
+          if (isTrackingMode && redactionsState.selectedRedaction) {
+            redactionsState.setKeyframe(
+              redactionsState.selectedRedaction.id,
+              playback.currentTimeMs,
+              redactionsState.selectedRedaction.bbox
+            );
+            playback.stepFrame(e.shiftKey ? 'backward' : 'forward', jumpFrames);
+          } else {
+            playback.togglePlay();
+          }
+          break;
+
+        case 'm':
+        case 'M':
+        case 'Enter': // Enter / M: Mark keyframe at current position
+          if (redactionsState.selectedRedaction) {
+            e.preventDefault();
+            redactionsState.setKeyframe(
+              redactionsState.selectedRedaction.id,
+              playback.currentTimeMs,
+              redactionsState.selectedRedaction.bbox
+            );
+            setNotification({
+              message: `Marked keyframe at ${msToTimecode(playback.currentTimeMs, playback.fps).formatted}`,
+              type: 'success'
+            });
+            setTimeout(() => setNotification(null), 1500);
+          }
+          break;
+
+        case 't':
+        case 'T': // T: Toggle Censor Tracking Mode
+          e.preventDefault();
+          setIsTrackingMode((prev) => {
+            const next = !prev;
+            setNotification({
+              message: next ? 'Censor Tracking Mode Enabled (Space = Keyframe & Step)' : 'Censor Tracking Mode Disabled',
+              type: 'info'
+            });
+            setTimeout(() => setNotification(null), 2500);
+            return next;
+          });
           break;
 
         case 'j':
@@ -113,14 +158,34 @@ export default function App(): React.ReactElement {
           playback.shuttleForward();
           break;
 
-        case 'ArrowLeft': // Left Arrow: Step 1 frame backward (or 1s with Shift)
+        case 'ArrowLeft': // Left Arrow: Step 1 frame backward (or jumpFrames with Shift, or Prev Keyframe with Alt)
           e.preventDefault();
-          playback.stepFrame('backward', e.shiftKey ? Math.round(playback.fps) : 1);
+          if (e.altKey && redactionsState.selectedRedaction?.keyframes) {
+            const surrounding = findSurroundingKeyframes(
+              redactionsState.selectedRedaction.keyframes,
+              playback.currentTimeMs
+            );
+            if (surrounding.prev) {
+              playback.seekToMs(surrounding.prev.timeMs);
+            }
+          } else {
+            playback.stepFrame('backward', e.shiftKey ? jumpFrames : 1);
+          }
           break;
 
-        case 'ArrowRight': // Right Arrow: Step 1 frame forward (or 1s with Shift)
+        case 'ArrowRight': // Right Arrow: Step 1 frame forward (or jumpFrames with Shift, or Next Keyframe with Alt)
           e.preventDefault();
-          playback.stepFrame('forward', e.shiftKey ? Math.round(playback.fps) : 1);
+          if (e.altKey && redactionsState.selectedRedaction?.keyframes) {
+            const surrounding = findSurroundingKeyframes(
+              redactionsState.selectedRedaction.keyframes,
+              playback.currentTimeMs
+            );
+            if (surrounding.next) {
+              playback.seekToMs(surrounding.next.timeMs);
+            }
+          } else {
+            playback.stepFrame('forward', e.shiftKey ? jumpFrames : 1);
+          }
           break;
 
         case '[': // [: Set In-Point for selected box
@@ -172,7 +237,7 @@ export default function App(): React.ReactElement {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playback, redactionsState, isExportOpen, isShortcutsOpen]);
+  }, [playback, redactionsState, isExportOpen, isShortcutsOpen, isTrackingMode, jumpFrames]);
 
   // Construct Export Payload
   const exportPayload = createExportPayload(
@@ -273,6 +338,8 @@ export default function App(): React.ReactElement {
             playbackRate={playback.playbackRate}
             shuttleRate={playback.shuttleRate}
             fps={playback.fps}
+            jumpFrames={jumpFrames}
+            onSetJumpFrames={setJumpFrames}
             volume={playback.volume}
             isMuted={playback.isMuted}
             isReady={playback.isReady}
@@ -294,6 +361,11 @@ export default function App(): React.ReactElement {
           selectedRedaction={redactionsState.selectedRedaction}
           currentTimeMs={playback.currentTimeMs}
           fps={playback.fps}
+          isTrackingMode={isTrackingMode}
+          onToggleTrackingMode={() => setIsTrackingMode((prev) => !prev)}
+          onSetKeyframe={redactionsState.setKeyframe}
+          onRemoveKeyframe={redactionsState.removeKeyframe}
+          onClearKeyframes={redactionsState.clearKeyframes}
           onSelectRedaction={redactionsState.selectRedaction}
           onUpdateRedaction={redactionsState.updateRedaction}
           onRemoveRedaction={redactionsState.removeRedaction}

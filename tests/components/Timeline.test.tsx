@@ -108,4 +108,35 @@ describe('Timeline component', () => {
     fireEvent.keyDown(slider, { key: 'End' });
     expect(onSeek).toHaveBeenCalledWith(10000);
   });
+
+  it('renders keyframe diamond markers and seeks to keyframe timestamp on click', () => {
+    const onSeek = vi.fn();
+    const onSelectRedaction = vi.fn();
+    const firstBox = sampleRedactions[0]!;
+    const redactionsWithKeyframes: RedactionBox[] = [
+      {
+        ...firstBox,
+        keyframes: [
+          { timeMs: 1500, bbox: [0.1, 0.1, 0.2, 0.2] as [number, number, number, number] },
+          { timeMs: 3500, bbox: [0.3, 0.3, 0.2, 0.2] as [number, number, number, number] },
+        ],
+      },
+    ];
+
+    render(
+      <Timeline
+        {...defaultProps}
+        redactions={redactionsWithKeyframes}
+        onSeek={onSeek}
+        onSelectRedaction={onSelectRedaction}
+      />
+    );
+
+    const diamond = screen.getByRole('button', { name: /Keyframe for Target Alpha at 00:00:01:15/i });
+    expect(diamond).toBeInTheDocument();
+
+    fireEvent.click(diamond);
+    expect(onSelectRedaction).toHaveBeenCalledWith('box-1');
+    expect(onSeek).toHaveBeenCalledWith(1500);
+  });
 });
