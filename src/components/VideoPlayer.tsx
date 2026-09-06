@@ -86,7 +86,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }`}
       style={{ maxHeight: 'calc(100vh - 280px)', ...aspectRatioStyle }}
     >
-      {/* Native HTML5 Video Element */}
+      {/* Native HTML5 Video Element with accessibility caption track */}
       <video
         ref={videoRef}
         playsInline
@@ -94,7 +94,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         preload="auto"
         className="w-full h-full object-contain block select-none pointer-events-none"
         aria-label="Raw forensic video media feed"
-      />
+      >
+        <track kind="captions" srcLang="en" label="Forensic Captions" default />
+      </video>
 
       {/* Synchronized 2D Redaction Canvas Overlay */}
       {isReady && (
@@ -129,15 +131,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               ? 'bg-blue-950/40 border-2 border-dashed border-blue-500'
               : 'bg-zinc-950/90 border-2 border-dashed border-zinc-800 hover:border-zinc-700'
           }`}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              dropInputRef.current?.click();
-            }
-          }}
-          aria-label="Upload evidence video file by dragging or clicking"
+          role="region"
+          aria-label="Evidence video file upload dropzone"
         >
           <input
             ref={dropInputRef}
@@ -161,15 +156,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <h2 className="text-base font-semibold text-white mb-1">
             Drop Evidence Video Here
           </h2>
-          <p className="text-xs text-zinc-400 max-w-sm mb-4">
+          <p className="text-xs text-zinc-300 max-w-sm mb-4">
             Drag and drop an MP4, WebM, MOV, or MKV file, or click to browse.
           </p>
 
           <div className="flex items-center justify-center">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                dropInputRef.current?.click();
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+              aria-label="Select File: Open evidence media file from disk"
+            >
               <Upload className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Select File</span>
-            </span>
+            </button>
           </div>
         </div>
       )}

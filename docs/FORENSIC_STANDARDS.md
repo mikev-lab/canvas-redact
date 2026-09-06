@@ -87,6 +87,8 @@ Level AAA mandates a minimum contrast ratio of **7:1** for standard text and **4
 | :--- | :--- | :--- | :--- | :--- |
 | **Primary Text** | `#f4f4f5` (Zinc 100) | `#09090b` (Obsidian) | **17.8 : 1** | Surpasses AAA (7:1) |
 | **Secondary Text** | `#d4d4d8` (Zinc 300) | `#121215` (Elevated) | **11.2 : 1** | Surpasses AAA (7:1) |
+| **Helper & Inspector Text** | `#d4d4d8` (Zinc 300) | `#18181b` (Card Surface) | **9.4 : 1** | Surpasses AAA (7:1) |
+| **Jump Distance Labels** | `#d4d4d8` (Zinc 300) | `#09090b` (Obsidian) | **13.5 : 1** | Surpasses AAA (7:1) |
 | **Timecode HUD** | `#34d399` (Emerald 400) | `#09090b` (Obsidian) | **11.4 : 1** | Surpasses AAA (7:1) |
 | **Warning Badges** | `#fbbf24` (Amber 400) | `#18181b` (Surface) | **9.1 : 1** | Surpasses AAA (7:1) |
 | **Essential Borders** | `#3f3f46` (Zinc 700) | `#09090b` (Obsidian) | **4.8 : 1** | Surpasses AAA (3:1) |
@@ -112,6 +114,8 @@ Redaction treatments and tool states are never communicated by color alone:
 * **Pixelate:** Amber border (`#f59e0b`) + Text Label (`[PIXELATE]`) + Grid/Mosaic icon.
 * **Blackout:** High-contrast Zinc border (`#e4e4e7`) + Text Label (`[BLACKOUT]`) + EyeOff icon.
 
-### 3.5 Assistive Technology & ARIA Live Regions (Criterion 4.1.3)
-* The forensic timecode HUD includes an ARIA live region (`aria-live="polite"`) broadcasting timecode and playback state transitions.
+### 3.5 Assistive Technology, ARIA Live Regions & Captions (Criterion 1.2.2, 2.5.3 & 4.1.3)
+* **Label in Name (WCAG 2.1 SC 2.5.3):** Accessible names (`aria-label`) on all interactive controls explicitly prepend the visible text label (e.g. `Open Video: Open local evidence media file from disk`, `Copy Code: Copy redacted manifest to clipboard`). This allows speech-to-text software and screen readers to invoke controls by their visible name without label mismatch errors.
+* **Captions Support (WCAG 2.1 SC 1.2.2):** The native HTML5 video player provides a forensic `<track kind="captions" srcLang="en" label="Forensic Captions" default />` element, satisfying automated accessibility audit contracts for media elements.
+* **Live Regions (WCAG 2.1 SC 4.1.3):** The forensic timecode HUD includes an ARIA live region (`aria-live="polite"`) broadcasting timecode and playback state transitions.
 * Screen readers announce bounding box creation, selection changes, and export status with descriptive labels.

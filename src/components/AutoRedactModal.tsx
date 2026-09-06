@@ -349,7 +349,7 @@ export const AutoRedactModal: React.FC<AutoRedactModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5 text-purple-400 shrink-0" aria-hidden="true" />
                   <span className="text-zinc-300 font-medium">Trajectory Keyframe Density:</span>
-                  <span className="text-zinc-500 text-[11px]">(Rate limited to avoid timeline clutter)</span>
+                  <span className="text-zinc-400 text-[11px]">(Rate limited to avoid timeline clutter)</span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-zinc-950 p-1 rounded-md border border-zinc-800">
                   <button
@@ -398,7 +398,7 @@ export const AutoRedactModal: React.FC<AutoRedactModalProps> = ({
                   <p className="text-xs text-zinc-300 font-medium">
                     No individuals detected with current confidence threshold.
                   </p>
-                  <p className="text-[11px] text-zinc-500">
+                  <p className="text-[11px] text-zinc-300">
                     Try re-scanning with a finer sampling rate or manually draw bounding boxes on the canvas.
                   </p>
                 </div>
@@ -457,25 +457,25 @@ export const AutoRedactModal: React.FC<AutoRedactModalProps> = ({
                               onChange={() => onToggleSelection(subject.id)}
                               className="w-4 h-4 rounded border-zinc-700 text-purple-600 focus:ring-purple-500 focus:ring-offset-zinc-950 bg-zinc-900"
                             />
-                            <span className={subject.selected ? 'text-purple-300 font-semibold' : 'text-zinc-400'}>
+                            <span className={subject.selected ? 'text-purple-300 font-semibold' : 'text-zinc-300'}>
                               {subject.selected ? 'Censor' : 'Ignore'}
                             </span>
                           </label>
                         </div>
 
                         {/* Appearance Timecode & Trajectory info */}
-                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400">
-                          <Clock className="w-3 h-3 text-zinc-500 shrink-0" aria-hidden="true" />
+                        <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-300">
+                          <Clock className="w-3 h-3 text-zinc-400 shrink-0" aria-hidden="true" />
                           <span>
                             {msToTimecode(subject.startMs, fps).formatted} to {msToTimecode(subject.endMs, fps).formatted}
                           </span>
-                          <span className="text-zinc-600">|</span>
+                          <span className="text-zinc-500">|</span>
                           <span>{durationSec}s ({subject.trajectory.length} pts)</span>
                         </div>
 
                         {/* Redaction Treatment Selector */}
                         <div className="flex items-center gap-1.5 pt-0.5">
-                          <span className="text-[10px] uppercase text-zinc-500 font-mono">Mode:</span>
+                          <span className="text-[10px] uppercase text-zinc-300 font-mono">Mode:</span>
                           <div className="inline-flex rounded border border-zinc-800 bg-zinc-950 p-0.5 text-[10px]">
                             <button
                               type="button"

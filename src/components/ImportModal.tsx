@@ -234,7 +234,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                 className={`p-6 border-2 border-dashed rounded-lg flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${
                   isDraggingFile
                     ? 'border-blue-500 bg-blue-950/30 text-blue-200'
-                    : 'border-zinc-800 hover:border-zinc-700 bg-zinc-900/30 text-zinc-400'
+                    : 'border-zinc-800 hover:border-zinc-700 bg-zinc-900/30 text-zinc-300'
                 }`}
                 role="button"
                 tabIndex={0}
@@ -244,13 +244,13 @@ export const ImportModal: React.FC<ImportModalProps> = ({
                     fileInputRef.current?.click();
                   }
                 }}
-                aria-label="Upload evidence JSON manifest file"
+                aria-label={selectedFileName ? `${selectedFileName}: Upload evidence JSON manifest file` : 'Drag and drop .json manifest file here: Upload evidence JSON manifest file'}
               >
                 <FolderInput className="w-8 h-8 text-blue-400 mb-2" aria-hidden="true" />
                 <p className="text-xs font-medium text-white mb-1">
                   {selectedFileName ? selectedFileName : 'Drag and drop .json manifest file here'}
                 </p>
-                <p className="text-[11px] text-zinc-500">or click to browse local files</p>
+                <p className="text-[11px] text-zinc-300">or click to browse local files</p>
               </div>
             </div>
           )}

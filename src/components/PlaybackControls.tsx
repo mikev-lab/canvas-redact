@@ -174,8 +174,8 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
 
         {/* Customizable Jump Step Selector */}
         {onSetJumpFrames && (
-          <div className="flex items-center gap-1 bg-zinc-900/90 border border-zinc-800 rounded px-1.5 py-1 text-[10px] text-zinc-400 font-mono ml-1">
-            <span className="text-zinc-500 uppercase font-sans font-semibold text-[9px]">Jump:</span>
+          <div className="flex items-center gap-1 bg-zinc-900/90 border border-zinc-800 rounded px-1.5 py-1 text-[10px] text-zinc-300 font-mono ml-1">
+            <span className="text-zinc-300 uppercase font-sans font-semibold text-[9px]">Jump:</span>
             {[1, 2, 5, 10, 30].map(f => (
               <button
                 key={f}
@@ -186,7 +186,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
                     ? 'bg-blue-600 text-white font-bold'
                     : 'hover:bg-zinc-800 text-zinc-300'
                 }`}
-                aria-label={`Set frame jump distance to ${f} frames`}
+                aria-label={`${f}f: Set frame jump distance to ${f} frames`}
                 title={`Set jump step to ${f} frames`}
               >
                 {f}f
@@ -211,10 +211,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             className={`px-1.5 py-0.5 text-[11px] font-mono rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 ${
               shuttleRate < 0
                 ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/50'
-                : 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-300 hover:text-white'
             }`}
             title="Reverse Shuttle (J)"
-            aria-label="Reverse shuttle (J key)"
+            aria-label="REV [J]: Reverse shuttle (J key)"
           >
             REV [J]
           </button>
@@ -226,10 +226,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             className={`px-1.5 py-0.5 text-[11px] font-mono rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 ${
               shuttleRate === 0 && !isPlaying
                 ? 'bg-zinc-800 text-white font-bold'
-                : 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-300 hover:text-white'
             }`}
             title="Pause Shuttle (K)"
-            aria-label="Pause shuttle (K key)"
+            aria-label="PAUSE [K]: Pause shuttle (K key)"
           >
             PAUSE [K]
           </button>
@@ -241,10 +241,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             className={`px-1.5 py-0.5 text-[11px] font-mono rounded transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 ${
               shuttleRate > 0 && isPlaying
                 ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/50'
-                : 'text-zinc-400 hover:text-zinc-200'
+                : 'text-zinc-300 hover:text-white'
             }`}
             title="Forward Shuttle (L)"
-            aria-label="Forward shuttle (L key)"
+            aria-label="FWD [L]: Forward shuttle (L key)"
           >
             FWD [L]
           </button>
@@ -258,8 +258,8 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
         )}
 
         {/* Normal Playback Rate Selector */}
-        <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-          <Gauge className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
+        <div className="flex items-center gap-1.5 text-xs text-zinc-300">
+          <Gauge className="w-3.5 h-3.5 text-zinc-300" aria-hidden="true" />
           <select
             value={playbackRate}
             onChange={(e) => onSetRate(parseFloat(e.target.value))}
@@ -312,12 +312,12 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             <span className="text-emerald-400 font-mono text-base font-bold tracking-wider">
               {timecode.formatted}
             </span>
-            <span className="text-zinc-500 font-mono text-xs">/</span>
-            <span className="text-zinc-400 font-mono text-xs">
+            <span className="text-zinc-400 font-mono text-xs">/</span>
+            <span className="text-zinc-300 font-mono text-xs">
               {totalTimecode.formatted}
             </span>
           </div>
-          <div className="text-[10px] font-mono text-zinc-400 flex items-center justify-between gap-2">
+          <div className="text-[10px] font-mono text-zinc-300 flex items-center justify-between gap-2">
             <span>FR: {currentFrame.toString().padStart(4, '0')}</span>
             <span>{currentTimeMs}ms / {durationMs}ms</span>
           </div>

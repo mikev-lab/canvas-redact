@@ -131,7 +131,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               type="button"
               onClick={handleCopy}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white text-xs font-medium border border-zinc-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              aria-label="Copy JSON code to clipboard"
+              aria-label="Copy Code: Copy JSON code to clipboard"
             >
               {copied ? (
                 <>
@@ -140,7 +140,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
+                  <Copy className="w-3.5 h-3.5 text-zinc-300" aria-hidden="true" />
                   <span>Copy Code</span>
                 </>
               )}
@@ -150,7 +150,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               type="button"
               onClick={handleDownload}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-              aria-label="Download JSON evidence file to disk"
+              aria-label="Download File: Download JSON evidence file to disk"
             >
               <Download className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Download File</span>

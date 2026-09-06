@@ -92,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
                 v0.1.0
               </span>
             </h1>
-            <p className="text-xs text-zinc-400">
+            <p className="text-xs text-zinc-300">
               Frame-Accurate Evidence Scrubbing & Privacy Redaction
             </p>
           </div>
@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
             value={reviewerId}
             onChange={(e) => onReviewerIdChange?.(e.target.value)}
             placeholder="Reviewer ID (e.g. OFC-4921)"
-            className="bg-transparent text-xs text-white placeholder-zinc-500 w-28 sm:w-44 focus:outline-none font-mono"
+            className="bg-transparent text-xs text-white placeholder-zinc-400 w-28 sm:w-44 focus:outline-none font-mono"
             title="Reviewer or Employee ID automatically stamped on new redactions for chain of custody"
           />
         </div>
@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          aria-label="Open local evidence media file from disk"
+          aria-label="Open Video: Open local evidence media file from disk"
         >
           <Upload className="w-3.5 h-3.5 text-blue-100" aria-hidden="true" />
           <span>Open Video</span>
@@ -165,9 +165,9 @@ export const Header: React.FC<HeaderProps> = ({
             }
           }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-          aria-label="Import evidence review JSON manifest from disk"
+          aria-label="Import JSON: Import evidence review JSON manifest from disk"
         >
-          <FolderInput className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
+          <FolderInput className="w-3.5 h-3.5 text-zinc-300" aria-hidden="true" />
           <span>Import JSON</span>
         </button>
 
@@ -177,7 +177,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onAutoRedactClick}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-purple-600/90 hover:bg-purple-600 text-white border border-purple-500/50 text-xs font-medium transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-            aria-label="Launch AI face detection and subject gallery"
+            aria-label="Auto-Redact: Launch AI face detection and subject gallery"
             title="Auto-Detect Faces & Select Individuals to Censor (Apple Silicon / WebGPU Accelerated)"
           >
             <Sparkles className="w-3.5 h-3.5 text-purple-200" aria-hidden="true" />
@@ -191,9 +191,9 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onClearAll}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded bg-zinc-900 hover:bg-red-950/40 text-zinc-300 hover:text-red-400 border border-zinc-700 hover:border-red-800 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
-            aria-label="Clear all current redaction annotations"
+            aria-label="Clear: Clear all current redaction annotations"
           >
-            <Trash2 className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
+            <Trash2 className="w-3.5 h-3.5 text-zinc-300" aria-hidden="true" />
             <span>Clear</span>
           </button>
         )}
@@ -206,9 +206,9 @@ export const Header: React.FC<HeaderProps> = ({
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 ${
             hasMedia && redactionCount > 0
               ? 'bg-blue-600 hover:bg-blue-500 text-white border border-blue-500 shadow-sm'
-              : 'bg-zinc-900 text-zinc-500 border border-zinc-800 cursor-not-allowed'
+              : 'bg-zinc-900 text-zinc-400 border border-zinc-800 cursor-not-allowed'
           }`}
-          aria-label={`Export evidence JSON with ${redactionCount} annotations`}
+          aria-label={`Export JSON: Export evidence JSON with ${redactionCount} annotations`}
         >
           <Download className="w-3.5 h-3.5" aria-hidden="true" />
           <span>Export JSON</span>
