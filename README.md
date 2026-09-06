@@ -3,10 +3,16 @@
 > **High-performance, frame-accurate React + HTML5 Canvas video scrubber for evidence bounding box redaction and forensic timeline annotation.**
 
 [![CI](https://github.com/mikev-lab/canvas-redact/actions/workflows/ci.yml/badge.svg)](https://github.com/mikev-lab/canvas-redact/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Interactive%20Scrubber-emerald?style=flat&logo=googlechrome&logoColor=white)](https://mikev-lab.github.io/canvas-redact/)
 [![WCAG 2.1 AAA](https://img.shields.io/badge/WCAG%202.1-Level%20AAA-emerald)](https://www.w3.org/WAI/WCAG21/quickref/?levels=aaa)
 [![Air-Gapped](https://img.shields.io/badge/Privacy-100%25%20Air--Gapped-blue)](https://github.com/mikev-lab/canvas-redact)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict%20Mode-3178c6)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-zinc)](LICENSE)
+
+---
+
+> 🚀 **Live Interactive Demo:** [https://mikev-lab.github.io/canvas-redact/](https://mikev-lab.github.io/canvas-redact/)  
+> *(Runs 100% client-side with zero install: loads an in-memory procedural CCTV evidence clip automatically on initial visit)*
 
 ---
 
