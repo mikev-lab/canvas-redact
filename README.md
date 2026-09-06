@@ -78,25 +78,68 @@ Engineered specifically for evidence handling, **canvas-redact** operates **100%
 ## Architecture & Technical Design
 
 ```mermaid
-graph TD
-    A[HTML5 Video Element] -->|Authoritative Time Clock| B[useVideoPlayback Hook]
-    B -->|Timecode & Shuttle Speed| C[PlaybackControls & Timeline]
-    B -->|60 FPS RAF Loop| D[CanvasOverlay 2D Context]
-    
-    E[Pointer Gestures] -->|Screen Coordinates| F[useCanvasInteraction Hook]
-    F -->|8-Handle Inversion Math| G[Normalized Geometry Engine]
-    G -->|"Normalized BBox (0.0 to 1.0)"| H[useRedactions Hook]
-    
-    H -->|Active Interval Slice| D
-    H -->|Inspector State| I[AnnotationSidebar]
-    H -->|Evidence Review JSON| J[ExportModal]
-    
-    D -->|Blur / Pixelate / Blackout| K[Visual Display Viewport]
+flowchart TD
+    subgraph Media_Layer["Media Engine & Hardware Clock"]
+        VID["HTML5 Video Element (Hardware Decode)"]
+        DEC["Decoder-Gated Seek Controller: isSeekingRef"]
+        FILE["Drag-and-Drop Local Media: URL.createObjectURL()"]
+        FILE --> VID
+        VID -->|Native timeupdate & seeked| VP["useVideoPlayback Hook"]
+        VP -->|Reverse Shuttle Seeks| DEC
+        DEC -->|video.currentTime = targetSec| VID
+    end
+
+    subgraph State_Management["Reactive State Machines & Computer Vision"]
+        VP -->|Integer Millisecond Timecode & Rate| CTL["PlaybackControls & Timeline"]
+        VP -->|Current Timestamp t| LERP["Keyframe Interpolation Engine (Lerp)"]
+        
+        PTR["User Pointer Gestures"] --> FSM["useCanvasInteraction (4-State FSM)"]
+        FSM -->|8-Point Inversion Math| GEO["Normalized Geometry Engine [0.0, 1.0]"]
+        GEO -->|Commit Bounding Box| RED["useRedactions Hook"]
+        
+        HOTKEY["Tracking Mode (T + Space)"] -->|Forward-Projected Bounds| EXT["Jump Extension: minEndMs"]
+        EXT --> RED
+        
+        VID -->|Offscreen Frame Sampling| AI["useAutoDetection (Lazy-Loaded)"]
+        AI -->|2D Kalman Filter + Hungarian IoU| SORT["SORT Multi-Object Tracker"]
+        SORT -->|Subject Gallery & Treatment Selectors| MOD["AutoRedactModal"]
+        MOD -->|Commit Tracklets with aiAssisted: true| RED
+        
+        ID["Reviewer Badge ID: OFC-XXXX"] -->|Chain of Custody Stamping| RED
+        RED -->|Chronological Keyframe Sequence| LERP
+    end
+
+    subgraph Rendering_Pipeline["60 FPS Canvas Redaction Engine"]
+        LERP -->|Active Interpolated Boxes| OVL["CanvasOverlay Component"]
+        VID -->|Direct Video Frames| OVL
+        DEC -->|Immediate seeked Redraw| OVL
+        OVL -->|GPU Filters: Blur / Pixelate / Blackout| DISP["Visual Display Viewport (60 FPS)"]
+    end
+
+    subgraph Evidentiary_Export["Forensic Audit & Manifest Export"]
+        RED -->|Sanitize Labels & Clamp Coordinates| EXP["ExportModal Dialog"]
+        EXP -->|Public Safety v1.0.0 JSON Contract| FILE_OUT["Evidence Manifest File Download"]
+    end
 ```
 
-For complete mathematical formulations, coordinate transformations, and filter algorithms, see the [Architecture Specification](docs/ARCHITECTURE.md).
+---
+
+## Engineering Deep Dives & Architectural Documentation
+
+To provide full transparency into the system architecture, mathematical formulations, and engineering trade-offs, **canvas-redact** includes dedicated technical deep dives:
+
+| Document | Focus Areas | Key Technical Highlights |
+| :--- | :--- | :--- |
+| [Master Architecture Specification](docs/ARCHITECTURE.md) | System Topology & Development Rationale | End-to-end data flow, 10 development trade-off rationales, court admissibility standards |
+| [Canvas Redaction Engine & Coordinate Math](docs/CANVAS_ENGINE.md) | 2D Canvas & Real-Time Graphics | 4-space coordinate pipeline, Retina DPI scaling, 8-point handle inversion math, GPU filters |
+| [Reactive Hooks & State Machines](docs/STATE_MACHINES_AND_HOOKS.md) | State Management & Lifecycle Governance | 4-state pointer FSM, decoder-gated reverse seeking, rotoscoping tracking workflow |
+| [Client-Side AI & Tracking Engine](docs/AI_TRACKING_ENGINE.md) | Computer Vision & Machine Learning | Pure TypeScript 2D Kalman filter, SORT tracking, zero-lump lazy loading |
+| [Forensic Evidential Standards](docs/FORENSIC_STANDARDS.md) | Evidence Integrity & Accessibility | Non-destructive vectors, Reviewer ID attribution, WCAG 2.1 Level AAA compliance |
+| [Data Models & Export Schemas](docs/DATA_MODELS_AND_SCHEMAS.md) | Domain Models & Machine Learning Data | Schema `v1.0.0`, XSS sanitization, integer millisecond math, YOLO/COCO conversion |
+| [Testing Strategy & Test Pyramid](docs/TESTING_STRATEGY.md) | Software Quality & Verification Gates | 3-layer test pyramid, 19 suites / 162 automated tests, CI pipeline automation |
 
 ---
+
 
 ## Evidence Export Contract (`v1.0.0`)
 

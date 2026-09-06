@@ -2,6 +2,14 @@
 
 This document outlines the technical architecture, mathematical foundations, rendering pipelines, and state machines powering **canvas-redact**: a high-performance, frame-accurate HTML5 Canvas and React video scrubber engineered for privacy redaction, court evidence review, and computer vision workflows.
 
+### Architectural Deep Dives
+* [Canvas Redaction Engine & High-Performance Coordinate Mathematics](CANVAS_ENGINE.md)
+* [Reactive Hooks, Interaction State Machines & Lifecycle Governance](STATE_MACHINES_AND_HOOKS.md)
+* [Client-Side Computer Vision, Spatial Kalman Tracking & Zero-Lump Architecture](AI_TRACKING_ENGINE.md)
+* [Forensic Evidential Standards, Chain of Custody & WCAG 2.1 Level AAA](FORENSIC_STANDARDS.md)
+* [Domain Data Models, Evidence Manifest Schema & Computer Vision Interoperability](DATA_MODELS_AND_SCHEMAS.md)
+* [Testing Strategy, Test Pyramid & Continuous Integration Gates](TESTING_STRATEGY.md)
+
 ---
 
 ## 1. System Topology & Data Flow
@@ -9,20 +17,48 @@ This document outlines the technical architecture, mathematical foundations, ren
 The application follows a unidirectional reactive architecture where the native HTML5 `<video>` element acts as the authoritative hardware clock. Bounding box coordinates and time intervals are isolated into custom hooks, ensuring that high-frequency timeline updates and 60 FPS canvas rendering do not trigger unnecessary DOM re-renders.
 
 ```mermaid
-graph TD
-    A[Native HTML5 Video Element] -->|Hardware Clock / timeupdate| B[useVideoPlayback Hook]
-    B -->|Current Timecode / State| C[PlaybackControls & Timeline]
-    B -->|RAF Sync Tick| D[CanvasOverlay 60 FPS Render Loop]
-    
-    E[User Pointer Gestures] -->|PointerDown / Move / Up| F[useCanvasInteraction Hook]
-    F -->|4-State Interaction FSM| G[Normalized Geometry Engine]
-    G -->|"Normalized BBox (0.0 to 1.0)"| H[useRedactions Hook]
-    
-    H -->|Active Annotations Slice| D
-    H -->|Annotation State| I[AnnotationSidebar Inspector]
-    H -->|Export Payload| J[ExportModal Dialog]
-    
-    D -->|Blur / Pixelate / Blackout| K[Rendered HTML5 Canvas Display]
+flowchart TD
+    subgraph Media_Layer["Media Engine & Hardware Clock"]
+        VID["HTML5 Video Element (Hardware Decode)"]
+        DEC["Decoder-Gated Seek Controller: isSeekingRef"]
+        FILE["Drag-and-Drop Local Media: URL.createObjectURL()"]
+        FILE --> VID
+        VID -->|Native timeupdate & seeked| VP["useVideoPlayback Hook"]
+        VP -->|Reverse Shuttle Seeks| DEC
+        DEC -->|video.currentTime = targetSec| VID
+    end
+
+    subgraph State_Management["Reactive State Machines & Computer Vision"]
+        VP -->|Integer Millisecond Timecode & Rate| CTL["PlaybackControls & Timeline"]
+        VP -->|Current Timestamp t| LERP["Keyframe Interpolation Engine (Lerp)"]
+        
+        PTR["User Pointer Gestures"] --> FSM["useCanvasInteraction (4-State FSM)"]
+        FSM -->|8-Point Inversion Math| GEO["Normalized Geometry Engine [0.0, 1.0]"]
+        GEO -->|Commit Bounding Box| RED["useRedactions Hook"]
+        
+        HOTKEY["Tracking Mode (T + Space)"] -->|Forward-Projected Bounds| EXT["Jump Extension: minEndMs"]
+        EXT --> RED
+        
+        VID -->|Offscreen Frame Sampling| AI["useAutoDetection (Lazy-Loaded)"]
+        AI -->|2D Kalman Filter + Hungarian IoU| SORT["SORT Multi-Object Tracker"]
+        SORT -->|Subject Gallery & Treatment Selectors| MOD["AutoRedactModal"]
+        MOD -->|Commit Tracklets with aiAssisted: true| RED
+        
+        ID["Reviewer Badge ID: OFC-XXXX"] -->|Chain of Custody Stamping| RED
+        RED -->|Chronological Keyframe Sequence| LERP
+    end
+
+    subgraph Rendering_Pipeline["60 FPS Canvas Redaction Engine"]
+        LERP -->|Active Interpolated Boxes| OVL["CanvasOverlay Component"]
+        VID -->|Direct Video Frames| OVL
+        DEC -->|Immediate seeked Redraw| OVL
+        OVL -->|GPU Filters: Blur / Pixelate / Blackout| DISP["Visual Display Viewport (60 FPS)"]
+    end
+
+    subgraph Evidentiary_Export["Forensic Audit & Manifest Export"]
+        RED -->|Sanitize Labels & Clamp Coordinates| EXP["ExportModal Dialog"]
+        EXP -->|Public Safety v1.0.0 JSON Contract| FILE_OUT["Evidence Manifest File Download"]
+    end
 ```
 
 ### Key Subsystems
