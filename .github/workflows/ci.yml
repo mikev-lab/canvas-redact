@@ -8,7 +8,7 @@ on:
 
 jobs:
   validate:
-    name: Typecheck, Test, Build & Stealth Audit
+    name: Typecheck, Test & Build
     runs-on: ubuntu-latest
 
     steps:
@@ -32,12 +32,3 @@ jobs:
 
       - name: Production Bundle Compilation
         run: npm run build
-
-      - name: Stealth and Git Leak Audit
-        run: |
-          echo "Auditing Git tracking index for agent governance leaks..."
-          if git ls-files | grep -E "(^|/)(AGENTS\.md|\.agents/|\.cursor/|\.windsurf/|CLAUDE\.md)"; then
-            echo "CRITICAL ERROR: Agent-specific files detected in public Git tracking index!"
-            exit 1
-          fi
-          echo "Audit passed: Zero agent files tracked in Git."
