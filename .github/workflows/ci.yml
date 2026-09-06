@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Typecheck, Test, Build & Stealth Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Strict Typecheck
+        run: npm run typecheck
+
+      - name: Run Automated Vitest Suites
+        run: npm test
+
+      - name: Production Bundle Compilation
+        run: npm run build
+
+      - name: Stealth and Git Leak Audit
+        run: |
+          echo "Auditing Git tracking index for agent governance leaks..."
+          if git ls-files | grep -E "(^|/)(AGENTS\.md|\.agents/|\.cursor/|\.windsurf/|CLAUDE\.md)"; then
+            echo "CRITICAL ERROR: Agent-specific files detected in public Git tracking index!"
+            exit 1
+          fi
+          echo "Audit passed: Zero agent files tracked in Git."
