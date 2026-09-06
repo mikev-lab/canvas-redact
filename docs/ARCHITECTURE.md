@@ -16,7 +16,7 @@ graph TD
     
     E[User Pointer Gestures] -->|PointerDown / Move / Up| F[useCanvasInteraction Hook]
     F -->|4-State Interaction FSM| G[Normalized Geometry Engine]
-    G -->|Normalized BBox [0..1]| H[useRedactions Hook]
+    G -->|"Normalized BBox (0.0 to 1.0)"| H[useRedactions Hook]
     
     H -->|Active Annotations Slice| D
     H -->|Annotation State| I[AnnotationSidebar Inspector]
@@ -120,8 +120,8 @@ stateDiagram-v2
     Idle --> Resizing : PointerDown on 8-point handle
     Idle --> Moving : PointerDown inside active box
     
-    Drawing --> Idle : PointerUp (< 5px micro-drag: Discard)
-    Drawing --> Idle : PointerUp (>= 5px: Commit Redaction)
+    Drawing --> Idle : PointerUp (Micro-drag under 5px: Discard)
+    Drawing --> Idle : PointerUp (Drag 5px or more: Commit Redaction)
     Drawing --> Idle : Escape key / Cancel
     
     Resizing --> Idle : PointerUp (Commit normalized bbox)

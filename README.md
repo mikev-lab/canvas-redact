@@ -70,7 +70,7 @@ graph TD
     
     E[Pointer Gestures] -->|Screen Coordinates| F[useCanvasInteraction Hook]
     F -->|8-Handle Inversion Math| G[Normalized Geometry Engine]
-    G -->|Normalized BBox [0..1]| H[useRedactions Hook]
+    G -->|"Normalized BBox (0.0 to 1.0)"| H[useRedactions Hook]
     
     H -->|Active Interval Slice| D
     H -->|Inspector State| I[AnnotationSidebar]
