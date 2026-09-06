@@ -166,4 +166,7 @@ claude.md
 .roo/
 *.agent.md
 *.agent.json
+tests/agent/
+*agent-compliance*
+
 
