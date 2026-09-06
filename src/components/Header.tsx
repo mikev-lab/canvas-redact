@@ -4,7 +4,7 @@
  */
 
 import React, { useRef } from 'react';
-import { Shield, Upload, Download, Trash2, HelpCircle, FolderInput, UserCheck } from 'lucide-react';
+import { Shield, Upload, Download, Trash2, HelpCircle, FolderInput, UserCheck, Sparkles } from 'lucide-react';
 
 export interface HeaderProps {
   /** Callback when user selects a local video file */
@@ -17,6 +17,8 @@ export interface HeaderProps {
   onClearAll: () => void;
   /** Callback to toggle forensic keyboard shortcuts modal */
   onToggleShortcuts: () => void;
+  /** Callback to open AI auto detection modal */
+  onAutoRedactClick?: () => void;
   /** Whether a video file is currently loaded and ready */
   hasMedia: boolean;
   /** Total count of redaction boxes */
@@ -36,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onExportClick,
   onClearAll,
   onToggleShortcuts,
+  onAutoRedactClick,
   hasMedia,
   redactionCount,
   reviewerId = '',
@@ -158,6 +161,20 @@ export const Header: React.FC<HeaderProps> = ({
           <FolderInput className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
           <span>Import JSON</span>
         </button>
+
+        {/* AI Face Detection & Subject Gallery button */}
+        {hasMedia && onAutoRedactClick && (
+          <button
+            type="button"
+            onClick={onAutoRedactClick}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-purple-600/90 hover:bg-purple-600 text-white border border-purple-500/50 text-xs font-medium transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+            aria-label="Launch AI face detection and subject gallery"
+            title="Auto-Detect Faces & Select Individuals to Censor (Apple Silicon / WebGPU Accelerated)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-200" aria-hidden="true" />
+            <span>Auto-Redact</span>
+          </button>
+        )}
 
         {/* Clear All Annotations */}
         {hasMedia && redactionCount > 0 && (

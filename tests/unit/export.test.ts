@@ -183,6 +183,37 @@ describe('Evidence Export & Import Sanitization', () => {
       expect(imported.redactions[0]?.reviewerId).toBe('OFC-4921');
       expect(imported.redactions[1]?.reviewerId).toBe('DEFAULT-REVIEWER');
     });
+
+    it('preserves and sanitizes aiAssisted flag across export and import', () => {
+      const aiBoxes: RedactionBox[] = [
+        {
+          id: 'ai-box-1',
+          label: 'AI Tracked Face',
+          type: 'blur',
+          startMs: 1000,
+          endMs: 3000,
+          bbox: [0.3, 0.3, 0.2, 0.2],
+          aiAssisted: true,
+        },
+        {
+          id: 'manual-box-2',
+          label: 'Manual Censor',
+          type: 'blackout',
+          startMs: 2000,
+          endMs: 4000,
+          bbox: [0.6, 0.6, 0.1, 0.1],
+          aiAssisted: false,
+        },
+      ];
+
+      const exported = createExportPayload(mockVideoMeta, aiBoxes);
+      expect(exported.redactions[0]?.aiAssisted).toBe(true);
+      expect(exported.redactions[1]?.aiAssisted).toBe(false);
+
+      const imported = validateAndSanitizeImport(JSON.stringify(exported));
+      expect(imported.redactions[0]?.aiAssisted).toBe(true);
+      expect(imported.redactions[1]?.aiAssisted).toBe(false);
+    });
   });
 
   describe('downloadJsonFile', () => {

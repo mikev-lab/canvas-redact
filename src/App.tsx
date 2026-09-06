@@ -13,6 +13,7 @@ import { createExportPayload, validateAndSanitizeImport } from './utils/export';
 import { findSurroundingKeyframes } from './utils/keyframes';
 import { msToTimecode } from './utils/timecode';
 
+import { useAutoDetection } from './hooks/useAutoDetection';
 import { Header } from './components/Header';
 import { VideoPlayer } from './components/VideoPlayer';
 import { PlaybackControls } from './components/PlaybackControls';
@@ -20,6 +21,7 @@ import { Timeline } from './components/Timeline';
 import { AnnotationSidebar } from './components/AnnotationSidebar';
 import { ExportModal } from './components/ExportModal';
 import { ShortcutsModal } from './components/ShortcutsModal';
+import { AutoRedactModal } from './components/AutoRedactModal';
 
 export default function App(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,6 +58,34 @@ export default function App(): React.ReactElement {
     onAddRedaction: handleAddRedaction,
     onUpdateRedaction: redactionsState.updateRedaction,
     onSelectRedaction: redactionsState.selectRedaction
+  });
+
+  // 4. AI Automated Detection & Tracking Hook
+  const handleApplyAutoRedactions = useCallback(
+    (boxes: Array<Omit<RedactionBox, 'id'> & { id?: string }>) => {
+      let count = 0;
+      for (const box of boxes) {
+        redactionsState.addRedaction({
+          ...box,
+          reviewerId: box.reviewerId || reviewerId || undefined,
+        });
+        count++;
+      }
+      setNotification({
+        message: `Applied ${count} AI-assisted redaction trajectory track${count === 1 ? '' : 's'}.`,
+        type: 'success',
+      });
+      setTimeout(() => setNotification(null), 3500);
+    },
+    [redactionsState, reviewerId]
+  );
+
+  const autoDetect = useAutoDetection({
+    videoRef: playback.videoRef,
+    durationMs: playback.durationMs,
+    fps: playback.fps,
+    isReady: playback.isReady,
+    onApplyRedactions: handleApplyAutoRedactions,
   });
 
 
@@ -229,6 +259,8 @@ export default function App(): React.ReactElement {
             setIsExportOpen(false);
           } else if (isShortcutsOpen) {
             setIsShortcutsOpen(false);
+          } else if (autoDetect.isOpen) {
+            autoDetect.closeModal();
           } else {
             redactionsState.selectRedaction(null);
           }
@@ -250,7 +282,7 @@ export default function App(): React.ReactElement {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playback, redactionsState, isExportOpen, isShortcutsOpen, isTrackingMode, jumpFrames]);
+  }, [playback, redactionsState, isExportOpen, isShortcutsOpen, autoDetect.isOpen, autoDetect.closeModal, isTrackingMode, jumpFrames]);
 
   // Construct Export Payload
   const exportPayload = createExportPayload(
@@ -276,6 +308,7 @@ export default function App(): React.ReactElement {
         onExportClick={() => setIsExportOpen(true)}
         onClearAll={redactionsState.clearAll}
         onToggleShortcuts={() => setIsShortcutsOpen(true)}
+        onAutoRedactClick={autoDetect.openModal}
         hasMedia={playback.isReady}
         redactionCount={redactionsState.redactions.length}
         reviewerId={reviewerId}
@@ -402,6 +435,31 @@ export default function App(): React.ReactElement {
       <ShortcutsModal
         isOpen={isShortcutsOpen}
         onClose={() => setIsShortcutsOpen(false)}
+      />
+
+      {/* AI Face Detection & Subject Gallery Modal */}
+      <AutoRedactModal
+        isOpen={autoDetect.isOpen}
+        onClose={autoDetect.closeModal}
+        status={autoDetect.status}
+        progressPercent={autoDetect.progressPercent}
+        currentScanMs={autoDetect.currentScanMs}
+        durationMs={playback.durationMs}
+        fps={playback.fps}
+        detectedSubjects={autoDetect.detectedSubjects}
+        selectedCount={autoDetect.selectedCount}
+        markAiAssisted={autoDetect.markAiAssisted}
+        hardwareAcceleration={autoDetect.hardwareAcceleration}
+        reviewerId={reviewerId}
+        onStartScan={autoDetect.startScan}
+        onCancelScan={autoDetect.cancelScan}
+        onToggleSelection={autoDetect.toggleSubjectSelection}
+        onUpdateTreatment={autoDetect.updateSubjectTreatment}
+        onUpdateLabel={autoDetect.updateSubjectLabel}
+        onSelectAll={autoDetect.selectAllSubjects}
+        onDeselectAll={autoDetect.deselectAllSubjects}
+        onSetMarkAiAssisted={autoDetect.setMarkAiAssisted}
+        onApply={autoDetect.applySelectedRedactions}
       />
     </div>
   );

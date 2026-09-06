@@ -90,6 +90,7 @@ export function createExportPayload(
             }
           : {}),
         ...(boxReviewer ? { reviewerId: boxReviewer } : {}),
+        ...(box.aiAssisted !== undefined ? { aiAssisted: Boolean(box.aiAssisted) } : {}),
       };
     }),
   };
@@ -211,6 +212,8 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
       }
     }
 
+    const aiAssisted = typeof rawBox.aiAssisted === 'boolean' ? rawBox.aiAssisted : undefined;
+
     sanitizedRedactions.push({
       id,
       label,
@@ -220,6 +223,7 @@ export function validateAndSanitizeImport(rawJson: string): ExportPayload {
       bbox,
       ...(keyframes ? { keyframes } : {}),
       ...(boxReviewerId ? { reviewerId: boxReviewerId } : {}),
+      ...(aiAssisted !== undefined ? { aiAssisted } : {}),
     });
   }
 

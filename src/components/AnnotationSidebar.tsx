@@ -115,6 +115,11 @@ export const AnnotationSidebar: React.FC<AnnotationSidebarProps> = ({
               <span className="text-xs font-bold text-blue-400 font-mono flex items-center gap-1.5">
                 <Crosshair className="w-3.5 h-3.5" aria-hidden="true" />
                 Selected Segment
+                {selectedRedaction.aiAssisted && (
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-purple-950 text-purple-300 border border-purple-700">
+                    AI-Assisted
+                  </span>
+                )}
               </span>
               <button
                 type="button"
@@ -424,6 +429,14 @@ export const AnnotationSidebar: React.FC<AnnotationSidebarProps> = ({
                         <span className="text-[9px] uppercase px-1 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
                           {box.type}
                         </span>
+                        {box.aiAssisted && (
+                          <span
+                            className="text-[9px] font-bold font-mono px-1 rounded bg-purple-950 text-purple-300 border border-purple-800"
+                            title="AI-Assisted detection trajectory"
+                          >
+                            AI
+                          </span>
+                        )}
                       </div>
                       <div className="text-[10px] font-mono text-zinc-400">
                         {msToTimecode(box.startMs, fps).formatted} to {msToTimecode(box.endMs, fps).formatted}

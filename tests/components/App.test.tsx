@@ -253,4 +253,25 @@ describe('App root component & global forensic keyboard coordinator', () => {
     expect(screen.getByText(/Reviewer: OFC-4921/i)).toBeInTheDocument();
     expect(screen.getByText(/"reviewerId": "OFC-4921"/i)).toBeInTheDocument();
   });
+
+  it('opens Auto-Redact Subject Gallery modal when Auto-Redact button is clicked', async () => {
+    render(<App />);
+    await loadTestAnnotations();
+
+    // Find and click Auto-Redact button
+    const autoRedactBtn = screen.getByRole('button', { name: /Launch AI face detection/i });
+    expect(autoRedactBtn).toBeInTheDocument();
+
+    fireEvent.click(autoRedactBtn);
+
+    // Auto-Redact modal should now be visible
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/AI FACE DETECTION & SUBJECT GALLERY/i)).toBeInTheDocument();
+
+    // Dismiss with Escape
+    fireEvent.keyDown(window, { key: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByText(/AI FACE DETECTION & SUBJECT GALLERY/i)).not.toBeInTheDocument();
+    });
+  });
 });

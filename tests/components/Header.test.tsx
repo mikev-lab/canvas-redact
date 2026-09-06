@@ -158,4 +158,26 @@ describe('Header component', () => {
     fireEvent.change(reviewerInput, { target: { value: 'DET-8832' } });
     expect(onReviewerIdChange).toHaveBeenCalledWith('DET-8832');
   });
+
+  it('renders Auto-Redact button when media is loaded and triggers onAutoRedactClick', () => {
+    const onAutoRedactClick = vi.fn();
+    render(
+      <Header
+        onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
+        onExportClick={vi.fn()}
+        onClearAll={vi.fn()}
+        onToggleShortcuts={vi.fn()}
+        onAutoRedactClick={onAutoRedactClick}
+        hasMedia={true}
+        redactionCount={0}
+      />
+    );
+
+    const autoRedactBtn = screen.getByRole('button', { name: /Launch AI face detection/i });
+    expect(autoRedactBtn).toBeInTheDocument();
+
+    fireEvent.click(autoRedactBtn);
+    expect(onAutoRedactClick).toHaveBeenCalledTimes(1);
+  });
 });

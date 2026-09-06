@@ -53,6 +53,32 @@ export interface RedactionBox {
   keyframes?: RedactionKeyframe[];
   /** Optional reviewer or employee identifier for forensic chain of custody tracking */
   reviewerId?: string;
+  /** Optional flag marking bounding box as generated via AI detection for legal transparency */
+  aiAssisted?: boolean;
+}
+
+/**
+ * Unique individual identified across video frames by the client-side detection pipeline.
+ */
+export interface DetectedSubject {
+  /** Unique subject identifier: e.g. "subject-1" */
+  id: string;
+  /** Human-readable label: e.g. "Subject 1", "Suspect", "Officer" */
+  label: string;
+  /** High-resolution face crop thumbnail data URL */
+  thumbnailUrl: string;
+  /** Timecode in milliseconds when subject first appears in video */
+  startMs: number;
+  /** Timecode in milliseconds when subject last appears in video */
+  endMs: number;
+  /** Trajectory keyframes tracked across video frames */
+  trajectory: RedactionKeyframe[];
+  /** Whether the operator has selected this individual for censorship */
+  selected: boolean;
+  /** Selected visual redaction treatment for this individual */
+  type: RedactionType;
+  /** Mean detection confidence score [0.0 .. 1.0] */
+  confidence: number;
 }
 
 /**

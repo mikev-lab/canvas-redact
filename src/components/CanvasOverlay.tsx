@@ -117,17 +117,19 @@ export const CanvasOverlay: React.FC<CanvasOverlayProps> = ({
         height: normH * displayHeight
       };
 
+      const displayLabel = redaction.aiAssisted ? `${redaction.label} [AI]` : redaction.label;
+
       // Apply selected redaction visual treatment
       if (redaction.type === 'blur') {
         applyBlur(ctx, video, renderRect, displayWidth, displayHeight, 14);
       } else if (redaction.type === 'pixelate') {
         applyPixelate(ctx, video, scratch, renderRect, videoDimensions, redaction.bbox, 10);
       } else if (redaction.type === 'blackout') {
-        applyBlackout(ctx, renderRect, redaction.label);
+        applyBlackout(ctx, renderRect, displayLabel);
       }
 
       // Draw bounding box outlines with category-specific colors
-      drawBoundingBoxOutline(ctx, renderRect, isSelected, redaction.label, redaction.type);
+      drawBoundingBoxOutline(ctx, renderRect, isSelected, displayLabel, redaction.type);
 
       // Draw 8 interactive handles if selected
       if (isSelected) {
