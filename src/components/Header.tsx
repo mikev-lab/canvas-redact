@@ -4,13 +4,15 @@
  */
 
 import React, { useRef } from 'react';
-import { Shield, Upload, Download, Trash2, Video, HelpCircle } from 'lucide-react';
+import { Shield, Upload, Download, Trash2, Video, HelpCircle, FolderInput } from 'lucide-react';
 
 export interface HeaderProps {
   /** Callback to trigger procedural synthetic CCTV demo generation */
   onLoadSample: () => void;
   /** Callback when user selects a local video file */
   onFileUpload: (file: File) => void;
+  /** Callback when user imports an evidence review JSON manifest */
+  onImportJson: (rawJson: string) => boolean;
   /** Callback to open evidence review JSON export modal */
   onExportClick: () => void;
   /** Callback to clear all active annotations */
@@ -29,6 +31,7 @@ export interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   onLoadSample,
   onFileUpload,
+  onImportJson,
   onExportClick,
   onClearAll,
   onToggleShortcuts,
@@ -36,12 +39,28 @@ export const Header: React.FC<HeaderProps> = ({
   redactionCount
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const manifestInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       onFileUpload(file);
       // Reset input value so the same file can be re-selected if needed
+      e.target.value = '';
+    }
+  };
+
+  const handleManifestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result;
+        if (typeof text === 'string') {
+          onImportJson(text);
+        }
+      };
+      reader.readAsText(file);
       e.target.value = '';
     }
   };
@@ -82,7 +101,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Action Toolbar */}
       <div className="flex items-center gap-2">
-        {/* Hidden native file input */}
+        {/* Hidden native video file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -92,6 +111,18 @@ export const Header: React.FC<HeaderProps> = ({
           id="evidence-file-input"
           tabIndex={-1}
           aria-label="Upload evidence video file"
+        />
+
+        {/* Hidden evidence JSON manifest input */}
+        <input
+          ref={manifestInputRef}
+          type="file"
+          accept=".json,application/json"
+          onChange={handleManifestChange}
+          className="sr-only"
+          id="manifest-file-input"
+          tabIndex={-1}
+          aria-label="Upload evidence review JSON manifest file"
         />
 
         {/* Load CCTV Synthetic Demo button */}
@@ -114,6 +145,17 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Upload className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
           <span>Open File</span>
+        </button>
+
+        {/* Import Evidence JSON Manifest button */}
+        <button
+          type="button"
+          onClick={() => manifestInputRef.current?.click()}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-700 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+          aria-label="Import evidence review JSON manifest from disk"
+        >
+          <FolderInput className="w-3.5 h-3.5 text-zinc-400" aria-hidden="true" />
+          <span>Import JSON</span>
         </button>
 
         {/* Clear All Annotations */}

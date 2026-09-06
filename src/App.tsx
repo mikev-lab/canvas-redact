@@ -9,7 +9,7 @@ import { useVideoPlayback } from './hooks/useVideoPlayback';
 import { useRedactions } from './hooks/useRedactions';
 import { useCanvasInteraction } from './hooks/useCanvasInteraction';
 import { createSampleVideo } from './sample/createSampleVideo';
-import { createExportPayload } from './utils/export';
+import { createExportPayload, validateAndSanitizeImport } from './utils/export';
 
 import { Header } from './components/Header';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -23,6 +23,7 @@ export default function App(): React.ReactElement {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // 1. Media Playback Hook
   const playback = useVideoPlayback({ defaultFps: 30 });
@@ -81,6 +82,29 @@ export default function App(): React.ReactElement {
     playback.loadSource(file, file.name);
     redactionsState.clearAll();
   }, [playback, redactionsState]);
+
+  // Handler for importing an evidence review JSON manifest
+  const handleImportJson = useCallback((rawJson: string): boolean => {
+    try {
+      const payload = validateAndSanitizeImport(rawJson);
+      const success = redactionsState.importPayload(payload);
+      if (success) {
+        setNotification({
+          message: `Successfully imported ${payload.redactions.length} redactions from manifest.`,
+          type: 'success'
+        });
+        setTimeout(() => setNotification(null), 4000);
+      }
+      return success;
+    } catch (err) {
+      setNotification({
+        message: `Import failed: ${(err as Error).message}`,
+        type: 'error'
+      });
+      setTimeout(() => setNotification(null), 5000);
+      return false;
+    }
+  }, [redactionsState]);
 
   // Auto-load procedural synthetic demo video on initial mount
   const hasAutoLoadedRef = useRef(false);
@@ -210,12 +234,36 @@ export default function App(): React.ReactElement {
       <Header
         onLoadSample={handleLoadSample}
         onFileUpload={handleFileUpload}
+        onImportJson={handleImportJson}
         onExportClick={() => setIsExportOpen(true)}
         onClearAll={redactionsState.clearAll}
         onToggleShortcuts={() => setIsShortcutsOpen(true)}
         hasMedia={playback.isReady}
         redactionCount={redactionsState.redactions.length}
       />
+
+      {/* Accessible notification toast */}
+      {notification && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`px-4 py-2 text-xs font-medium flex items-center justify-between border-b ${
+            notification.type === 'success'
+              ? 'bg-emerald-950/80 text-emerald-200 border-emerald-800'
+              : 'bg-red-950/80 text-red-200 border-red-800'
+          }`}
+        >
+          <span>{notification.message}</span>
+          <button
+            type="button"
+            onClick={() => setNotification(null)}
+            className="text-zinc-400 hover:text-white ml-2 text-sm font-bold"
+            aria-label="Dismiss notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Main Workspace: Media Viewport & Inspector Sidebar */}
       <main className="flex-1 flex flex-col lg:flex-row overflow-hidden p-3 gap-3">

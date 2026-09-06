@@ -80,4 +80,59 @@ describe('App root component & global forensic keyboard coordinator', () => {
     // Playback state should remain unchanged (not toggled)
     expect(screen.getAllByText(/00:00:00:00/).length).toBeGreaterThan(0);
   });
+
+  it('imports evidence JSON manifest and updates state', async () => {
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Suspect Face').length).toBeGreaterThan(0);
+    });
+
+    const manifestInput = screen.getByLabelText(/Upload evidence review JSON manifest file/i) as HTMLInputElement;
+
+    const mockManifest = JSON.stringify({
+      version: '1.0.0',
+      metadata: {
+        source: 'canvas-redact',
+        videoName: 'test.mp4',
+        durationMs: 10000,
+        dimensions: { width: 1920, height: 1080 },
+        exportedAt: new Date().toISOString()
+      },
+      redactions: [
+        {
+          id: 'imported-box-1',
+          label: 'Custom Imported Tag',
+          type: 'blackout',
+          startMs: 0,
+          endMs: 5000,
+          bbox: [0.1, 0.1, 0.2, 0.2]
+        }
+      ]
+    });
+
+    const file = new File([mockManifest], 'evidence_manifest.json', { type: 'application/json' });
+
+    // Mock FileReader to trigger onload synchronously in test
+    const originalFileReader = window.FileReader;
+    class MockFileReader {
+      onload: ((e: { target: { result: string } }) => void) | null = null;
+      readAsText() {
+        if (this.onload) {
+          this.onload({ target: { result: mockManifest } });
+        }
+      }
+    }
+    // @ts-expect-error mocking FileReader for test
+    window.FileReader = MockFileReader;
+
+    fireEvent.change(manifestInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Custom Imported Tag').length).toBeGreaterThan(0);
+      expect(screen.getByText(/Successfully imported 1 redactions from manifest/i)).toBeInTheDocument();
+    });
+
+    window.FileReader = originalFileReader;
+  });
 });

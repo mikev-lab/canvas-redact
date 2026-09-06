@@ -213,3 +213,51 @@ To satisfy Section 508 and federal court evidence review standards:
    - State updates are broadcast to assistive technology via `aria-live="polite"`.
 6. **Air-Gapped Forensic Privacy:**
    - Zero telemetry, zero network tracking, and 100% client-side memory safety with guaranteed Object URL revocation.
+
+---
+
+## 8. Local Client-Side Face Tracking & Automated Redaction Architecture
+
+To streamline the redaction of long evidence videos containing moving individuals while preserving the air-gapped forensic privacy invariant, **canvas-redact** is designed to support local, zero-network facial tracking.
+
+### 8.1 100% Client-Side WebAssembly / WebGPU Invariant
+* Face detection models and feature embedders execute locally within the client browser using WebAssembly or WebGPU acceleration.
+* Zero video frames, biometric vectors, or annotations are ever transmitted over external networks.
+
+### 8.2 Tracking & Association Pipeline
+1. **Keyframe Sampling:** Video frames are sampled at discrete intervals onto an offscreen scratch canvas.
+2. **Face Detection & Landmark Extraction:** The local model detects candidate face bounding boxes $[nx, ny, nw, nh]$ and returns confidence scores.
+3. **Target Enrollment Vector:** When an operator identifies a subject to redact, the system extracts a facial embedding vector $\mathbf{v}_{\text{target}} \in \mathbb{R}^{128}$.
+4. **Temporal Re-Identification:** In subsequent frames, candidate faces are matched against the enrolled target using cosine similarity combined with spatial Kalman filter projections:
+   $$\text{sim}(\mathbf{v}_j, \mathbf{v}_{\text{target}}) = \frac{\mathbf{v}_j \cdot \mathbf{v}_{\text{target}}}{\|\mathbf{v}_j\| \|\mathbf{v}_{\text{target}}\|}$$
+5. **Timeline Interval Creation:** Matched trajectories are synthesized into standard `RedactionBox` entries with validity windows $[startMs, endMs]$.
+
+---
+
+## 9. Multi-Rate Frame Ingestion Architecture (24, 25, 30, 50, 60 FPS & Low-FPS Media)
+
+Forensic evidence media encompasses diverse capture rates, from high-speed patrol car dashcams to low-frame-rate commercial CCTV surveillance DVRs.
+
+### 9.1 Supported Media Capture Standards
+* **24 FPS:** Cinematic / high-end bodycam media ($\Delta t_{\text{frame}} \approx 41.667\text{ ms}$)
+* **25 FPS:** European PAL broadcast and municipal CCTV ($\Delta t_{\text{frame}} = 40.000\text{ ms}$)
+* **30 FPS:** Standard NTSC, mobile evidence, and bodycam systems ($\Delta t_{\text{frame}} \approx 33.333\text{ ms}$)
+* **50 FPS & 60 FPS:** High-speed tactical camera systems ($\Delta t_{\text{frame}} = 20.000\text{ ms}$ and $\approx 16.667\text{ ms}$)
+* **Low-FPS Surveillance Systems:**
+  - 1 FPS ($\Delta t_{\text{frame}} = 1000\text{ ms}$)
+  - 5 FPS ($\Delta t_{\text{frame}} = 200\text{ ms}$)
+  - 10 FPS ($\Delta t_{\text{frame}} = 100\text{ ms}$)
+  - 12 FPS ($\Delta t_{\text{frame}} \approx 83.333\text{ ms}$)
+  - 15 FPS ($\Delta t_{\text{frame}} \approx 66.667\text{ ms}$)
+
+### 9.2 Adaptive Stepping Math
+Single frame stepping dynamically scales to the active media FPS:
+
+$$\Delta t_{\text{step}} = \frac{1000}{\text{fps}} \text{ ms}$$
+
+$$t_{\text{target}} = \text{round}\left(\frac{t_{\text{current}} + \Delta \text{frames} \times \Delta t_{\text{step}}}{\Delta t_{\text{step}}}\right) \times \Delta t_{\text{step}}$$
+
+### 9.3 Low-FPS Scrubbing & Timeline Optimization
+* Media with $\text{fps} < 15$ dynamically shifts the timeline ruler division ticks to whole-second markers ($1\text{s}, 2\text{s}, 5\text{s}, 10\text{s}$), preventing tick crowding.
+* Frame-stepping hotkeys (`Left/Right` arrow) accurately jump to the nearest recorded video keyframe.
+* The evidence review manifest records `metadata.fps`, ensuring frame-accurate chain-of-custody reproducibility during court proceedings.

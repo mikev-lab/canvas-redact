@@ -21,7 +21,7 @@ Engineered specifically for evidence handling, **canvas-redact** operates **100%
 ## Key Capabilities
 
 * **100% Client-Side & Air-Gapped:** Zero telemetry, zero analytics tracking, and zero remote network requests. Media files never leave the local browser environment.
-* **Frame-Accurate Video Engine:** Synchronized to native video hardware clocks supporting standard 30 FPS ($\approx 33.33\text{ ms}$ per frame), 24, 25, 50, and 60 FPS media.
+* **Frame-Accurate Video Engine & Multi-Rate Ingestion:** Synchronized to native video hardware clocks supporting standard 30 FPS, 24 FPS (film/cinematic), 25 FPS (PAL), 50/60 FPS (high-speed bodycams/dashcams), and low-FPS surveillance media (1, 5, 10, 12, and 15 FPS CCTV systems).
 * **Real-Time 60 FPS Redaction Canvas:**
   * **Gaussian Defocus Blur:** Soft privacy blur applied via hardware-accelerated 2D context filtering.
   * **Mosaic Pixelation:** Spatial subsampling rendered using an offscreen scratch buffer with nearest-neighbor interpolation.
@@ -30,7 +30,8 @@ Engineered specifically for evidence handling, **canvas-redact** operates **100%
 * **8-Point Handle Transformation Geometry:** Interactive resize handles with automatic coordinate inversion math when dragged past opposing boundaries.
 * **Multi-Track Forensic Timeline:** Drag-and-seek playhead, calibrated time ruler, visual interval validity bars, and draggable In/Out point marker brackets.
 * **Forensic Shuttle & Keyboard Controls:** Industry-standard video editing navigation (`Space`, `J/K/L` shuttle speeds from -4x to 4x, 1-frame steppers, 30-frame jumps, `[` and `]` in/out markers).
-* **Evidence Review Export Schema (`v1.0.0`):** Strictly structured JSON evidence manifests with defense-in-depth label sanitization and coordinate clamping.
+* **Evidence Review Import & Export Schema (`v1.0.0`):** Bi-directional evidence manifest handling (export and import) with defense-in-depth label sanitization, coordinate clamping, and automatic timestamp ordering.
+* **Client-Side Face Tracking & Auto-Redaction Architecture:** Designed for local, zero-network facial detection and re-identification trajectories using in-browser WebAssembly/WebGPU runtimes.
 * **Procedural Synthetic CCTV Evidence Generator:** Generates a 10-second mock evidence clip directly in memory ($1280 \times 720$ at 30 FPS) with burnt-in timecode and moving targets for immediate offline testing.
 * **WCAG 2.1 Level AAA Accessibility:** Enhanced $\ge 7:1$ contrast against obsidian surfaces, visible high-contrast focus rings, full keyboard operability without a mouse, multi-modal indicator coding, and ARIA live regions.
 

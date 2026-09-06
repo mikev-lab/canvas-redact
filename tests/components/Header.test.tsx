@@ -8,6 +8,7 @@ describe('Header component', () => {
       <Header
         onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
         onExportClick={vi.fn()}
         onClearAll={vi.fn()}
         onToggleShortcuts={vi.fn()}
@@ -26,6 +27,7 @@ describe('Header component', () => {
       <Header
         onLoadSample={onLoadSample}
         onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
         onExportClick={vi.fn()}
         onClearAll={vi.fn()}
         onToggleShortcuts={vi.fn()}
@@ -45,6 +47,7 @@ describe('Header component', () => {
       <Header
         onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
         onExportClick={onExportClick}
         onClearAll={vi.fn()}
         onToggleShortcuts={vi.fn()}
@@ -65,6 +68,7 @@ describe('Header component', () => {
       <Header
         onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
         onExportClick={onExportClick}
         onClearAll={vi.fn()}
         onToggleShortcuts={vi.fn()}
@@ -85,6 +89,7 @@ describe('Header component', () => {
       <Header
         onLoadSample={vi.fn()}
         onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
         onExportClick={vi.fn()}
         onClearAll={onClearAll}
         onToggleShortcuts={vi.fn()}
@@ -104,6 +109,7 @@ describe('Header component', () => {
       <Header
         onLoadSample={vi.fn()}
         onFileUpload={onFileUpload}
+        onImportJson={vi.fn()}
         onExportClick={vi.fn()}
         onClearAll={vi.fn()}
         onToggleShortcuts={vi.fn()}
@@ -117,5 +123,25 @@ describe('Header component', () => {
 
     fireEvent.change(input, { target: { files: [file] } });
     expect(onFileUpload).toHaveBeenCalledWith(file);
+  });
+
+  it('renders Import JSON button and triggers manifest input', () => {
+    render(
+      <Header
+        onLoadSample={vi.fn()}
+        onFileUpload={vi.fn()}
+        onImportJson={vi.fn()}
+        onExportClick={vi.fn()}
+        onClearAll={vi.fn()}
+        onToggleShortcuts={vi.fn()}
+        hasMedia={true}
+        redactionCount={0}
+      />
+    );
+
+    const importBtn = screen.getByRole('button', { name: /Import evidence review JSON manifest/i });
+    expect(importBtn).toBeInTheDocument();
+    const manifestInput = screen.getByLabelText(/Upload evidence review JSON manifest file/i) as HTMLInputElement;
+    expect(manifestInput).toBeInTheDocument();
   });
 });
